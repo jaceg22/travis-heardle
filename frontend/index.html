@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Travis Scott Heardle – Online</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- HOME PAGE -->
+<div id="home">
+    <h1>Travis Scott Heardle</h1>
+    <div class="mode-selection">
+        <button id="soloBtn" class="mode-btn">Solo</button>
+        <button id="h2hBtn" class="mode-btn">H2H</button>
+    </div>
+</div>
+
+<!-- SOLO MODE -->
+<div id="soloGame" style="display:none;">
+    <h2>Solo Mode</h2>
+    
+    <div class="audio-controls">
+        <button id="soloPlay">Play Audio</button>
+        <button id="soloSkip">Skip</button>
+        <span id="soloDuration">Current: 1.0s</span>
+        <span id="soloStrikes">0/6 strikes</span>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="soloGuess" placeholder="Your Guess" autocomplete="off">
+            <div id="soloAutocomplete" class="autocomplete-list"></div>
+        </div>
+        <button id="soloSendGuess">Guess</button>
+    </div>
+
+    <div id="soloStatus" class="status"></div>
+    <div id="soloFeedback" class="feedback"></div>
+    
+    <div class="game-actions">
+        <button id="soloNewGame" class="new-game-btn">New Game</button>
+        <button id="soloHome" class="home-btn">Home</button>
+    </div>
+</div>
+
+<!-- H2H MODE - LOBBY MENU -->
+<div id="h2hMenu" style="display:none;">
+    <h2>Head-to-Head Mode</h2>
+    <div class="lobby-menu">
+        <div class="create-section">
+            <input id="createUsername" placeholder="Your Username">
+            <button id="create">Create Lobby</button>
+        </div>
+        <div class="join-section">
+            <input id="joinId" placeholder="Lobby Code">
+            <input id="joinUsername" placeholder="Your Username">
+            <button id="join">Join Lobby</button>
+        </div>
+    </div>
+    <button id="h2hMenuHome" class="home-btn">Home</button>
+</div>
+
+<!-- H2H MODE - GAME -->
+<div id="h2hGame" style="display:none;">
+    <h2 id="lobbyText"></h2>
+    <div id="h2hScore" class="score-display"></div>
+
+    <div class="audio-controls">
+        <button id="h2hPlay">Play Audio</button>
+        <button id="h2hSkip">Skip</button>
+        <span id="h2hDuration">Current: 1.0s</span>
+        <span id="h2hStrikes">0/6 strikes</span>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="h2hGuess" placeholder="Your Guess" autocomplete="off">
+            <div id="h2hAutocomplete" class="autocomplete-list"></div>
+        </div>
+        <button id="h2hSendGuess">Guess</button>
+    </div>
+
+    <p id="h2hStatus" class="status"></p>
+    <div id="h2hFeedback" class="feedback"></div>
+    
+    <div class="game-actions">
+        <button id="h2hNewGame" class="new-game-btn" disabled>New Game</button>
+        <button id="h2hHome" class="home-btn">Home</button>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

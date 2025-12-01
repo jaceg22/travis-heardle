@@ -1,0 +1,249 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+/* HOME PAGE */
+#home {
+    max-width: 600px;
+    margin: 100px auto;
+}
+
+.mode-selection {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    margin-top: 50px;
+}
+
+.mode-btn {
+    padding: 30px 60px;
+    font-size: 32px;
+    font-weight: bold;
+    background: #333;
+    color: white;
+    border: 3px solid #555;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.mode-btn:hover {
+    background: #444;
+    border-color: #777;
+    transform: scale(1.05);
+}
+
+/* GAME AREA */
+#soloGame, #h2hGame {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.audio-controls {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0;
+}
+
+button {
+    padding: 12px 24px;
+    margin: 8px;
+    font-size: 18px;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+button:hover {
+    background: #444;
+    border-color: #777;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#soloDuration, #h2hDuration {
+    font-size: 20px;
+    font-weight: bold;
+    color: #0f0;
+}
+
+#soloStrikes, #h2hStrikes {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff6;
+}
+
+/* GUESS SECTION */
+.guess-section {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 30px 0;
+    position: relative;
+}
+
+.autocomplete-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+input[type="text"] {
+    padding: 12px;
+    font-size: 18px;
+    width: 400px;
+    background: #222;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 5px;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #0f0;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #222;
+    border: 2px solid #555;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.autocomplete-item:hover {
+    background: #333;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+/* STATUS & FEEDBACK */
+.status {
+    min-height: 30px;
+    font-size: 18px;
+    margin: 20px 0;
+}
+
+.feedback {
+    min-height: 50px;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.feedback.correct {
+    background: #0a4;
+    color: white;
+}
+
+.feedback.incorrect {
+    background: #a00;
+    color: white;
+}
+
+.feedback.not-found {
+    background: #aa0;
+    color: #000;
+}
+
+/* LOBBY MENU */
+#h2hMenu {
+    max-width: 600px;
+    margin: 100px auto;
+}
+
+.lobby-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+    margin: 40px 0;
+}
+
+.create-section, .join-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    border: 2px solid #555;
+    border-radius: 10px;
+}
+
+.back-btn, .new-game-btn, .home-btn {
+    margin-top: 30px;
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+.game-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.score-display {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0f0;
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(0, 255, 0, 0.1);
+    border-radius: 5px;
+}
+
+/* SCROLLBAR */
+.autocomplete-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.autocomplete-list::-webkit-scrollbar-track {
+    background: #111;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
