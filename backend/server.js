@@ -461,6 +461,8 @@ function checkRoundEnd(game, lobbyId) {
           winner: winner,
           winnerDuration: sortedPlayers[0].duration,
           winnerStrikes: sortedPlayers[0].strikes,
+          loserStrikes: sortedPlayers[1].strikes,
+          sameStrikes: true,
           song: game.song,
           scores: game.scores
         });
@@ -475,6 +477,8 @@ function checkRoundEnd(game, lobbyId) {
           winner: winner,
           winnerDuration: sortedPlayers[0].duration,
           winnerStrikes: sortedPlayers[0].strikes,
+          loserStrikes: sortedPlayers[1].strikes,
+          sameStrikes: false,
           song: game.song,
           scores: game.scores
         });
