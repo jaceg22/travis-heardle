@@ -7,29 +7,81 @@ import { Server } from "socket.io";
 // SONG LIST (same as your python)
 // ---------------------------
 const songs = [
-  "16 Chapels", "Hell of a Night", "SIRENS", "3500",
-  "SKELETONS", "SKITZO", "90210", "Highest in the Room",
-  "STARGAZING", "A-Team", "I Can Tell", "STOP TRYING TO BE GOD",
-  "ASTROTHUNDER", "I KNOW ?", "Skyfall", "Antidote", "Sloppy Toppy",
-  "Apple Pie", "Impossible", "TELEKINESIS", "BUTTERFLY EFFECT", "K-POP",
-  "THANK GOD",  "KICK OUT", "THE SCOTTS", "Backyard",
-  "LOOOVE", "TIL FURTHER NOTICE", "Bad Mood Shit On You", "LOST FOREVER",
-  "TOPIA TWINS", "Bandz", "MAFIA", "The Prayer", "Basement Freestyle",
-  "MELTDOWN",  "MIA", "Trance", "Blocka La Flame",
-  "MODERN JAM", "BACC", "CAN'T SAY", "MY EYES", "CAROUSEL",
-  "Mamacita", "Upper Echelon", "CHAMPAIN & VACAY", "Maria I'm Drunk",
-  "Uptown", "CIRCUS MAXIMUS", "Mo City Flexologist", "WAKE UP",
-  "COFFEE BEAN", "NC-17", "WHO? WHAT!", "DA WIZARD", "NO BYSTANDERS",
-  "Watch", "DELRESTO (ECHOES)", "Naked", "YOSEMITE", "DUMBO",
-  "Never Catch Me", "Zombies", "Dance on the Moon", "Nightcrawler",
-  "biebs in the trap", "Don't Play", "Only 1", "coordinate", "Drive",
-  "Overdue", "first take", "Drugs You Should Try It", "PARASAIL",
-  "goosebumps", "ESCAPE PLAN", "PBT", "guidance", "FE!N", "Pornography",
-  "outside", "FLORIDA FLOW", "Pray 4 Love", "sdp interlude",
-  "First Class", "Quintana Pt. 2", "sweet sweet", "GOD'S COUNTRY",
-  "Quintana", "the ends", "Grey", "R.I.P. SCREW", "through the late night",
-  "HOUSTONFORNICATION", "Raindrops (Insane)", "way back", "HYAENA",
-  "SICKO MODE", "wonderful"
+  "16 Chapels",
+  "3500",
+  "90210",
+  "A-Team",
+  "Antidote",
+  "Apple Pie",
+  "ASTROTHUNDER",
+  "BACC",
+  "Backyard",
+  "Bad Mood Shit On You",
+  "Bandz",
+  "Basement Freestyle",
+  "biebs in the trap",
+  "Blocka La Flame",
+  "BUTTERFLY EFFECT",
+  "CAN'T SAY",
+  "CAROUSEL",
+  "CHAMPAIN & VACAY",
+  "CIRCUS MAXIMUS",
+  "COFFEE BEAN",
+  "coordinate",
+  "DA WIZARD",
+  "Dance on the Moon",
+  "DELRESTO (ECHOES)",
+  "Don't Play",
+  "Drive",
+  "Drugs You Should Try It",
+  "DUMBO",
+  "ESCAPE PLAN",
+  "FE!N",
+  "first take",
+  "FLORIDA FLOW",
+  "GOD'S COUNTRY",
+  "goosebumps",
+  "Grey",
+  "guidance",
+  "Hell of a Night",
+  "Highest in the Room",
+  "HOUSTONFORNICATION",
+  "HYAENA",
+  "I Can Tell",
+  "I KNOW ?",
+  "Impossible",
+  "K-POP",
+  "KICK OUT",
+  "LOOOVE",
+  "LOST FOREVER",
+  "MAFIA",
+  "Mamacita",
+  "Maria I'm Drunk",
+  "MELTDOWN",
+  "MIA",
+  "Mo City Flexologist",
+  "MODERN JAM",
+  "MY EYES",
+  "Naked",
+  "NC-17",
+  "Never Catch Me",
+  "Nightcrawler",
+  "NO BYSTANDERS",
+  "Only 1",
+  "outside",
+  "Overdue",
+  "PARASAIL",
+  "PBT",
+  "Pornography",
+  "Pray 4 Love",
+  "Quintana Pt. 2",
+  "Quintana",
+  "R.I.P. SCREW",
+  "Raindrops (Insane)",
+  "sdp interlude","SICKO MODE","SIRENS","SKELETONS","SKITZO",
+  "Skyfall","Sloppy Toppy","STARGAZING","STOP TRYING TO BE GOD","sweet sweet","TELEKINESIS","THANK GOD",
+  "the ends","The Prayer","THE SCOTTS","through the late night","TIL FURTHER NOTICE","TOPIA TWINS","Trance","Upper Echelon",
+  "Uptown","WAKE UP","Watch","way back","WHO? WHAT!","wonderful","YOSEMITE","Zombies"
 ];
 
 // Duration values (lower is better)
@@ -84,7 +136,8 @@ io.on("connection", (socket) => {
       started: false,
       scores: {},
       roundFinished: false,
-      gameMode: gameMode || 'regular'
+      gameMode: gameMode || 'regular',
+      newSongRequests: {}
     };
 
     // Add creator as first player
@@ -225,8 +278,9 @@ io.on("connection", (socket) => {
     player.timestamp = Date.now();
     player.strikes = strikes || 6;
 
-    // Notify other players
+    // Notify other players and send song name
     socket.to(lobbyId).emit("opponentStrikesOut", { username });
+    socket.emit("playerStrikesOutResponse", { song: game.song });
     
     // Check if all players have finished
     checkRoundEnd(game, lobbyId);
@@ -249,6 +303,9 @@ io.on("connection", (socket) => {
       p.strikesOut = false;
       p.strikes = 0;
     });
+    
+    // Reset new song requests
+    game.newSongRequests = {};
 
     io.to(lobbyId).emit("gameStart", {
       song: game.song,
@@ -256,6 +313,56 @@ io.on("connection", (socket) => {
       scores: game.scores,
       gameMode: game.gameMode
     });
+  });
+
+  socket.on("requestNewSong", ({ lobbyId, username }) => {
+    const game = lobbies[lobbyId];
+    if (!game || !game.started || game.roundFinished) return;
+    
+    // Mark this player as requesting new song
+    if (!game.newSongRequests) {
+      game.newSongRequests = {};
+    }
+    game.newSongRequests[username] = true;
+    
+    // Check if all players have requested
+    const allPlayers = Object.keys(game.players);
+    const allRequested = allPlayers.every(p => game.newSongRequests[p]);
+    
+    if (allRequested && allPlayers.length >= 2) {
+      // All players requested - skip round and start new one
+      game.roundFinished = true;
+      
+      // Reset requests
+      game.newSongRequests = {};
+      
+      // Generate new song
+      game.song = randomSong();
+      game.startTime = game.gameMode === 'random' ? randomStart() : 0;
+      game.roundFinished = false;
+      
+      // Reset player states
+      Object.values(game.players).forEach(p => {
+        p.finished = false;
+        p.duration = null;
+        p.timestamp = null;
+        p.strikesOut = false;
+        p.strikes = 0;
+      });
+      
+      io.to(lobbyId).emit("gameStart", {
+        song: game.song,
+        startTime: game.startTime,
+        scores: game.scores,
+        gameMode: game.gameMode
+      });
+    } else {
+      // Broadcast request status
+      io.to(lobbyId).emit("newSongRequestStatus", {
+        requests: Object.keys(game.newSongRequests),
+        total: allPlayers.length
+      });
+    }
   });
 
   socket.on("leaveLobby", ({ lobbyId }) => {
@@ -344,12 +451,17 @@ function checkRoundEnd(game, lobbyId) {
       const allSameStrikes = strikes.every(s => s === strikes[0]);
 
       if (allSameStrikes) {
-        // Same number of strikes = tie (regardless of duration)
+        // Same number of strikes - use timestamp (who guessed first)
+        const winner = sortedPlayers[0].username;
+        const loser = sortedPlayers[1].username;
+        game.scores[winner].wins++;
+        game.scores[loser].losses++;
+        
         io.to(lobbyId).emit("gameOver", {
-          winner: "tie",
-          duration: sortedPlayers[0].duration,
-          strikes: strikes[0],
-          players: sortedPlayers.map(p => p.username),
+          winner: winner,
+          winnerDuration: sortedPlayers[0].duration,
+          winnerStrikes: sortedPlayers[0].strikes,
+          song: game.song,
           scores: game.scores
         });
       } else {
