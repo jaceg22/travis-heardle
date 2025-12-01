@@ -138,7 +138,7 @@ const SONGS = [
     "STOP TRYING TO BE GOD", "ASTROTHUNDER", "I KNOW ?", "Skyfall",
     "Antidote", "Sloppy Toppy", "Apple Pie", "Impossible",
     "TELEKINESIS", "BUTTERFLY EFFECT", "K-POP", "THANK GOD",
-    "Back On It", "KICK OUT", "THE SCOTTS", "Backyard", "LOOOVE",
+    "KICK OUT", "THE SCOTTS", "Backyard", "LOOOVE",
     "TIL FURTHER NOTICE", "Bad Mood Shit On You", "LOST FOREVER", "TOPIA TWINS",
     "Bandz", "MAFIA", "The Prayer", "Basement Freestyle", "MELTDOWN",
     "The Curse", "Blame", "MIA", "Trance",
@@ -537,11 +537,10 @@ document.getElementById("soloGuess").onclick = () => {
         return;
     }
     
-    soloState.strikes++;
-    const strikeIndex = soloState.strikes - 1;
-    
     if (matchedSong.toLowerCase() === soloState.currentSong.toLowerCase()) {
+        // Correct guess - don't increment strikes, use current strike count
         soloState.guessed = true;
+        const strikeIndex = soloState.strikes;
         updateProgressBar('solo', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
         document.getElementById("soloFeedback").textContent = `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`;
@@ -555,6 +554,9 @@ document.getElementById("soloGuess").onclick = () => {
             clearInterval(soloState.progressInterval);
         }
     } else {
+        // Incorrect guess - increment strikes
+        soloState.strikes++;
+        const strikeIndex = soloState.strikes - 1;
         updateProgressBar('solo', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
         document.getElementById("soloFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
@@ -923,13 +925,9 @@ document.getElementById("h2hGuess").onclick = () => {
     const duration = DURATIONS[Math.min(h2hState.skips, 5)];
     const timestamp = Date.now();
     
-    // Increment strikes first (this guess counts as a strike)
-    h2hState.strikes++;
-    const strikeIndex = h2hState.strikes - 1;
-    const currentStrikes = h2hState.strikes;
-    
     if (matchedSong.toLowerCase() === h2hState.currentSong.toLowerCase()) {
-        // Correct guess - send to server with current strikes count
+        // Correct guess - don't increment strikes, use current strike count
+        const currentStrikes = h2hState.strikes;
         socket.emit("playerGuess", {
             lobbyId: h2hState.lobbyId,
             username: h2hState.username,
@@ -940,6 +938,7 @@ document.getElementById("h2hGuess").onclick = () => {
         });
         h2hState.guessed = true;
         h2hState.finished = true;
+        const strikeIndex = h2hState.strikes;
         updateProgressBar('h2h', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `Correct! Waiting for opponent...`;
@@ -951,7 +950,9 @@ document.getElementById("h2hGuess").onclick = () => {
             clearInterval(h2hState.progressInterval);
         }
     } else {
-        // Incorrect guess - don't send to server, just show feedback
+        // Incorrect guess - increment strikes
+        h2hState.strikes++;
+        const strikeIndex = h2hState.strikes - 1;
         updateProgressBar('h2h', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
@@ -995,21 +996,43 @@ socket.on("gameOver", data => {
     h2hState.scores = data.scores || h2hState.scores;
     updateScoreDisplay();
     
+    const songName = data.song || h2hState.currentSong;
+    const isWinner = data.winner === h2hState.username;
+    const guessedCorrectly = h2hState.guessed; // Check if current player guessed correctly
+    
     let message = "";
-    if (data.winner === h2hState.username) {
+    let feedbackMessage = "";
+    
+    if (isWinner) {
         message = `You won! You guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
         document.getElementById("h2hFeedback").className = "feedback correct";
+        feedbackMessage = `Correct song: ${songName}`;
     } else {
-        message = `${data.winner} won! They guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
-        document.getElementById("h2hFeedback").className = "feedback incorrect";
+        // Current player lost
+        if (guessedCorrectly && data.winnerStrikes !== undefined) {
+            // Player guessed correctly but lost (both guessed correctly)
+            if (data.sameStrikes) {
+                // Same strikes, opponent guessed first
+                message = `${data.winner} guessed "${songName}" in first`;
+            } else {
+                // Opponent had fewer strikes
+                message = `${data.winner} guessed "${songName}" in ${data.winnerStrikes} guesses`;
+            }
+            document.getElementById("h2hFeedback").className = "feedback correct";
+            feedbackMessage = `Correct song: ${songName}`;
+        } else {
+            // Player struck out
+            message = `${data.winner} won! They guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
+            document.getElementById("h2hFeedback").className = "feedback incorrect";
+            feedbackMessage = `Out of strikes! The song was: ${songName}`;
+        }
     }
+    
     document.getElementById("h2hStatus").textContent = message;
     
     // Enable request new song button
     document.getElementById("h2hRequestNewSong").disabled = false;
-    const songName = data.song || h2hState.currentSong;
-    document.getElementById("h2hFeedback").textContent = `Correct song: ${songName}`;
-    h2hState.guessed = true;
+    document.getElementById("h2hFeedback").textContent = feedbackMessage;
     h2hState.finished = true;
     
     // Disable game controls
@@ -1023,11 +1046,15 @@ socket.on("gameOver", data => {
     }
     
     // Show result modal
-    const isWinner = data.winner === h2hState.username;
     const resultMessage = isWinner 
         ? `You guessed "${songName}" in ${data.winnerStrikes || '?'} tries!`
-        : `Incorrect! The song was: ${songName}`;
-    showSongResultModal(songName, resultMessage, isWinner);
+        : guessedCorrectly && data.winnerStrikes !== undefined
+            ? (data.sameStrikes 
+                ? `${data.winner} guessed "${songName}" in first`
+                : `${data.winner} guessed "${songName}" in ${data.winnerStrikes} guesses`)
+            : `Incorrect! The song was: ${songName}`;
+    
+    showSongResultModal(songName, resultMessage, guessedCorrectly || isWinner);
 });
 
 document.getElementById("h2hRequestNewSong").onclick = () => {
