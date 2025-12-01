@@ -10,37 +10,57 @@
 <div id="home">
     <h1>Travis Scott Heardle</h1>
     <div class="mode-selection">
-        <button id="soloBtn" class="mode-btn">Solo</button>
-        <button id="h2hBtn" class="mode-btn">H2H</button>
+        <div class="mode-option">
+            <h3>Solo</h3>
+            <button id="soloRegularBtn" class="mode-btn">Regular</button>
+            <button id="soloRandomBtn" class="mode-btn">Random</button>
+        </div>
+        <div class="mode-option">
+            <h3>H2H</h3>
+            <button id="h2hRegularBtn" class="mode-btn">Regular</button>
+            <button id="h2hRandomBtn" class="mode-btn">Random</button>
+        </div>
     </div>
 </div>
 
 <!-- SOLO MODE -->
 <div id="soloGame" style="display:none;">
-    <h2>Solo Mode</h2>
-    
-    <div class="audio-controls">
-        <button id="soloPlay">Play Audio</button>
-        <button id="soloSkip">Skip</button>
-        <span id="soloDuration">Current: 1.0s</span>
-        <span id="soloStrikes">0/6 strikes</span>
+    <div class="game-header">
+        <button id="soloHome" class="home-btn-top">Home</button>
+        <span id="soloStrikes" class="strikes-display">0/6 strikes</span>
+    </div>
+
+    <div class="progress-bars-container">
+        <div id="soloBar1" class="progress-bar"></div>
+        <div id="soloBar2" class="progress-bar"></div>
+        <div id="soloBar3" class="progress-bar"></div>
+        <div id="soloBar4" class="progress-bar"></div>
+        <div id="soloBar5" class="progress-bar"></div>
+        <div id="soloBar6" class="progress-bar"></div>
+    </div>
+
+    <div class="song-progress-container">
+        <div id="soloSongProgress" class="song-progress-bar">
+            <div id="soloSongProgressFill" class="song-progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <button id="soloPlay" class="control-btn">Play</button>
+        <button id="soloSkip" class="control-btn">Skip</button>
+        <button id="soloGuess" class="control-btn">Guess</button>
     </div>
 
     <div class="guess-section">
         <div class="autocomplete-wrapper">
-            <input id="soloGuess" placeholder="Your Guess" autocomplete="off">
+            <input id="soloGuessInput" placeholder="Your Guess" autocomplete="off">
             <div id="soloAutocomplete" class="autocomplete-list"></div>
         </div>
-        <button id="soloSendGuess">Guess</button>
     </div>
 
-    <div id="soloStatus" class="status"></div>
     <div id="soloFeedback" class="feedback"></div>
     
-    <div class="game-actions">
-        <button id="soloNewGame" class="new-game-btn">New Game</button>
-        <button id="soloHome" class="home-btn">Home</button>
-    </div>
+    <button id="soloNewGame" class="new-game-btn">New Game</button>
 </div>
 
 <!-- H2H MODE - LOBBY MENU -->
@@ -62,22 +82,40 @@
 
 <!-- H2H MODE - GAME -->
 <div id="h2hGame" style="display:none;">
-    <h2 id="lobbyText"></h2>
-    <div id="h2hScore" class="score-display"></div>
+    <div class="game-header">
+        <button id="h2hHome" class="home-btn-top">Home</button>
+        <span id="h2hStrikes" class="strikes-display">0/6 strikes</span>
+    </div>
 
-    <div class="audio-controls">
-        <button id="h2hPlay">Play Audio</button>
-        <button id="h2hSkip">Skip</button>
-        <span id="h2hDuration">Current: 1.0s</span>
-        <span id="h2hStrikes">0/6 strikes</span>
+    <div id="h2hScore" class="score-display"></div>
+    <div id="lobbyText" class="lobby-info"></div>
+
+    <div class="progress-bars-container">
+        <div id="h2hBar1" class="progress-bar"></div>
+        <div id="h2hBar2" class="progress-bar"></div>
+        <div id="h2hBar3" class="progress-bar"></div>
+        <div id="h2hBar4" class="progress-bar"></div>
+        <div id="h2hBar5" class="progress-bar"></div>
+        <div id="h2hBar6" class="progress-bar"></div>
+    </div>
+
+    <div class="song-progress-container">
+        <div id="h2hSongProgress" class="song-progress-bar">
+            <div id="h2hSongProgressFill" class="song-progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <button id="h2hPlay" class="control-btn">Play</button>
+        <button id="h2hSkip" class="control-btn">Skip</button>
+        <button id="h2hGuess" class="control-btn">Guess</button>
     </div>
 
     <div class="guess-section">
         <div class="autocomplete-wrapper">
-            <input id="h2hGuess" placeholder="Your Guess" autocomplete="off">
+            <input id="h2hGuessInput" placeholder="Your Guess" autocomplete="off">
             <div id="h2hAutocomplete" class="autocomplete-list"></div>
         </div>
-        <button id="h2hSendGuess">Guess</button>
     </div>
 
     <p id="h2hStatus" class="status"></p>
@@ -85,7 +123,15 @@
     
     <div class="game-actions">
         <button id="h2hNewGame" class="new-game-btn" disabled>New Game</button>
-        <button id="h2hHome" class="home-btn">Home</button>
+    </div>
+
+    <!-- CHAT SECTION -->
+    <div class="chat-container">
+        <div id="h2hChatMessages" class="chat-messages"></div>
+        <div class="chat-input-container">
+            <input id="h2hChatInput" placeholder="Type a message..." autocomplete="off">
+            <button id="h2hChatSend">Send</button>
+        </div>
     </div>
 </div>
 
