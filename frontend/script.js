@@ -449,6 +449,9 @@ socket.on("lobbyCreated", data => {
             bar.textContent = '';
         }
     }
+    
+    // Setup chat resize functionality
+    setTimeout(() => setupChatResize(), 100);
 });
 
 document.getElementById("join").onclick = () => {
@@ -542,7 +545,11 @@ socket.on("gameStart", data => {
     getSongDuration(data.song).then(duration => {
         h2hState.songDuration = duration;
     });
+    
+    // Setup chat resize functionality after DOM is ready
+    setTimeout(() => setupChatResize(), 100);
 });
+
 
 socket.on("lobbyError", msg => {
     alert(msg);
@@ -631,7 +638,8 @@ document.getElementById("h2hSkip").onclick = () => {
             // Notify server that player struck out
             socket.emit("playerStrikesOut", {
                 lobbyId: h2hState.lobbyId,
-                username: h2hState.username
+                username: h2hState.username,
+                strikes: h2hState.strikes
             });
             return;
         }
@@ -678,7 +686,8 @@ document.getElementById("h2hGuess").onclick = () => {
             // Notify server that player struck out
             socket.emit("playerStrikesOut", {
                 lobbyId: h2hState.lobbyId,
-                username: h2hState.username
+                username: h2hState.username,
+                strikes: h2hState.strikes
             });
         }
         hideAutocomplete("h2h");
@@ -687,19 +696,22 @@ document.getElementById("h2hGuess").onclick = () => {
     
     const duration = DURATIONS[Math.min(h2hState.skips, 5)];
     const timestamp = Date.now();
-
-    socket.emit("playerGuess", {
-        lobbyId: h2hState.lobbyId,
-        username: h2hState.username,
-        guess: matchedSong,
-        duration: duration,
-        timestamp: timestamp
-    });
     
+    // Increment strikes first (this guess counts as a strike)
     h2hState.strikes++;
     const strikeIndex = h2hState.strikes - 1;
+    const currentStrikes = h2hState.strikes;
     
     if (matchedSong.toLowerCase() === h2hState.currentSong.toLowerCase()) {
+        // Correct guess - send to server with current strikes count
+        socket.emit("playerGuess", {
+            lobbyId: h2hState.lobbyId,
+            username: h2hState.username,
+            guess: matchedSong,
+            duration: duration,
+            timestamp: timestamp,
+            strikes: currentStrikes
+        });
         h2hState.guessed = true;
         h2hState.finished = true;
         updateProgressBar('h2h', strikeIndex, 'correct', 'Guessed Correct!');
@@ -713,6 +725,7 @@ document.getElementById("h2hGuess").onclick = () => {
             clearInterval(h2hState.progressInterval);
         }
     } else {
+        // Incorrect guess - don't send to server, just show feedback
         updateProgressBar('h2h', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
@@ -731,7 +744,8 @@ document.getElementById("h2hGuess").onclick = () => {
             // Notify server that player struck out
             socket.emit("playerStrikesOut", {
                 lobbyId: h2hState.lobbyId,
-                username: h2hState.username
+                username: h2hState.username,
+                strikes: h2hState.strikes
             });
         }
     }
@@ -750,13 +764,13 @@ socket.on("gameOver", data => {
     
     let message = "";
     if (data.winner === h2hState.username) {
-        message = `You won! You guessed in ${data.winnerDuration}s`;
+        message = `You won! You guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
         document.getElementById("h2hFeedback").className = "feedback correct";
     } else if (data.winner === "tie") {
-        message = `Tie! Both players ${data.players && data.players.length > 1 ? "tied" : "finished"}`;
+        message = `Tie! Both players finished with ${data.strikes || '?'} strikes`;
         document.getElementById("h2hFeedback").className = "feedback not-found";
     } else {
-        message = `${data.winner} won! They guessed in ${data.winnerDuration}s`;
+        message = `${data.winner} won! They guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
         document.getElementById("h2hFeedback").className = "feedback incorrect";
     }
     document.getElementById("h2hStatus").textContent = message;
@@ -822,7 +836,11 @@ socket.on("chatMessage", data => {
     messageDiv.className = "chat-message";
     
     const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    messageDiv.innerHTML = `<span class="username">${data.username}:</span> ${data.message} <span style="color: #666; font-size: 11px; margin-left: 5px;">${time}</span>`;
+    // Color: green for own name, yellow for opponent
+    const isOwnMessage = data.username === h2hState.username;
+    const usernameColor = isOwnMessage ? '#0f0' : '#ff0';
+    
+    messageDiv.innerHTML = `<span class="username" style="color: ${usernameColor};">${data.username}:</span> ${data.message} <span style="color: #666; font-size: 11px; margin-left: 5px;">${time}</span>`;
     
     chatMessages.appendChild(messageDiv);
     
@@ -831,6 +849,55 @@ socket.on("chatMessage", data => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     });
 });
+
+// ---------------------------
+// CHAT RESIZE FUNCTIONALITY
+// ---------------------------
+let chatResizeState = {
+    isResizing: false,
+    startY: 0,
+    startHeight: 0,
+    initialized: false
+};
+
+function setupChatResize() {
+    const resizeHandle = document.getElementById("h2hChatResize");
+    const chatContainer = document.getElementById("h2hChatContainer");
+    
+    if (!resizeHandle || !chatContainer || chatResizeState.initialized) return;
+    
+    chatResizeState.initialized = true;
+    
+    resizeHandle.addEventListener("mousedown", (e) => {
+        chatResizeState.isResizing = true;
+        chatResizeState.startY = e.clientY;
+        chatResizeState.startHeight = chatContainer.offsetHeight;
+        document.body.style.cursor = "ns-resize";
+        e.preventDefault();
+    });
+    
+    document.addEventListener("mousemove", (e) => {
+        if (!chatResizeState.isResizing) return;
+        
+        const deltaY = chatResizeState.startY - e.clientY; // Inverted because we're resizing from top
+        const newHeight = Math.max(120, Math.min(600, chatResizeState.startHeight + deltaY));
+        chatContainer.style.height = newHeight + "px";
+        
+        // Update game container padding
+        const h2hGame = document.getElementById("h2hGame");
+        if (h2hGame) {
+            h2hGame.style.paddingBottom = (newHeight + 20) + "px";
+        }
+    });
+    
+    document.addEventListener("mouseup", () => {
+        if (chatResizeState.isResizing) {
+            chatResizeState.isResizing = false;
+            document.body.style.cursor = "";
+        }
+    });
+}
+
 
 socket.on("opponentGuess", data => {
     document.getElementById("h2hStatus").textContent = `${data.username} guessed! Waiting for results...`;
