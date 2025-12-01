@@ -43,13 +43,17 @@ const socket = io(BACKEND_URL);
 // GLOBAL STATE
 // ---------------------------
 let currentMode = null; // 'solo' or 'h2h'
+let gameMode = 'regular'; // 'regular' or 'random'
 let soloState = {
     currentSong: null,
     skips: 0,
     startTime: 0,
     audio: null,
     guessed: false,
-    strikes: 0
+    strikes: 0,
+    progressBars: [],
+    songDuration: 0,
+    progressInterval: null
 };
 let h2hState = {
     lobbyId: null,
@@ -64,7 +68,11 @@ let h2hState = {
     playerCount: 0,
     scores: {},
     roundFinished: false,
-    finished: false
+    finished: false,
+    progressBars: [],
+    songDuration: 0,
+    progressInterval: null,
+    gameMode: 'regular'
 };
 
 // ---------------------------
@@ -78,15 +86,32 @@ const h2hGame = document.getElementById("h2hGame");
 // ---------------------------
 // MODE SELECTION
 // ---------------------------
-document.getElementById("soloBtn").onclick = () => {
+document.getElementById("soloRegularBtn").onclick = () => {
     currentMode = 'solo';
+    gameMode = 'regular';
     home.style.display = "none";
     soloGame.style.display = "block";
     startSoloGame();
 };
 
-document.getElementById("h2hBtn").onclick = () => {
+document.getElementById("soloRandomBtn").onclick = () => {
+    currentMode = 'solo';
+    gameMode = 'random';
+    home.style.display = "none";
+    soloGame.style.display = "block";
+    startSoloGame();
+};
+
+document.getElementById("h2hRegularBtn").onclick = () => {
     currentMode = 'h2h';
+    gameMode = 'regular';
+    home.style.display = "none";
+    h2hMenu.style.display = "block";
+};
+
+document.getElementById("h2hRandomBtn").onclick = () => {
+    currentMode = 'h2h';
+    gameMode = 'random';
     home.style.display = "none";
     h2hMenu.style.display = "block";
 };
@@ -122,30 +147,88 @@ document.getElementById("soloHome").onclick = () => {
 // ---------------------------
 // SOLO MODE
 // ---------------------------
-function startSoloGame() {
+async function startSoloGame() {
+    const songName = SONGS[Math.floor(Math.random() * SONGS.length)];
+    let startTime = 0;
+    
+    if (gameMode === 'random') {
+        // Get song duration and calculate random start (0 to duration-40)
+        const duration = await getSongDuration(songName);
+        const maxStart = Math.max(0, duration - 40);
+        startTime = parseFloat((Math.random() * maxStart).toFixed(2));
+    }
+    
     soloState = {
-        currentSong: SONGS[Math.floor(Math.random() * SONGS.length)],
+        currentSong: songName,
         skips: 0,
-        startTime: parseFloat((Math.random() * 20).toFixed(2)),
+        startTime: startTime,
         audio: null,
         guessed: false,
-        strikes: 0
+        strikes: 0,
+        progressBars: [],
+        songDuration: await getSongDuration(songName),
+        progressInterval: null
     };
     
-    document.getElementById("soloDuration").textContent = "Current: 1.0s";
+    // Reset progress bars
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`soloBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
     document.getElementById("soloStrikes").textContent = "0/6 strikes";
-    document.getElementById("soloStatus").textContent = "";
     document.getElementById("soloFeedback").textContent = "";
     document.getElementById("soloFeedback").className = "feedback";
-    document.getElementById("soloGuess").value = "";
+    document.getElementById("soloGuessInput").value = "";
     document.getElementById("soloSkip").disabled = false;
-    document.getElementById("soloSendGuess").disabled = false;
+    document.getElementById("soloGuess").disabled = false;
+    document.getElementById("soloSongProgressFill").style.width = "0%";
     
     // Stop any playing audio
     if (soloState.audio) {
         soloState.audio.pause();
         soloState.audio = null;
     }
+    if (soloState.progressInterval) {
+        clearInterval(soloState.progressInterval);
+    }
+}
+
+// Helper function to update progress bars
+function updateProgressBar(mode, index, type, text) {
+    const prefix = mode === 'solo' ? 'solo' : 'h2h';
+    const bar = document.getElementById(`${prefix}Bar${index + 1}`);
+    if (!bar) return;
+    
+    bar.className = 'progress-bar';
+    if (type === 'skip') {
+        bar.classList.add('skipped');
+        bar.textContent = 'Skipped';
+    } else if (type === 'correct') {
+        bar.classList.add('correct');
+        bar.textContent = text || 'Guessed Correct!';
+    } else if (type === 'incorrect') {
+        bar.classList.add('incorrect');
+        bar.textContent = text || `Guessed "${text || ''}" Incorrect`;
+    }
+}
+
+// Helper function to get song duration for random mode
+async function getSongDuration(songName) {
+    const url = `${SUPABASE_BASE}/${encodeURIComponent(songName)}.mp3`;
+    return new Promise((resolve) => {
+        const audio = new Audio(url);
+        audio.addEventListener('loadedmetadata', () => {
+            resolve(audio.duration);
+        });
+        audio.addEventListener('error', () => {
+            resolve(180); // Default 3 minutes if can't load
+        });
+        audio.load();
+    });
 }
 
 document.getElementById("soloPlay").onclick = () => {
@@ -162,14 +245,36 @@ document.getElementById("soloPlay").onclick = () => {
     soloState.audio = new Audio(url);
     soloState.audio.currentTime = soloState.startTime;
     
+    // Start progress bar animation
+    if (soloState.progressInterval) {
+        clearInterval(soloState.progressInterval);
+    }
+    
+    const startProgress = soloState.startTime;
+    const endProgress = startProgress + duration;
+    
     soloState.audio.play().catch(err => {
         console.error("Error playing audio:", err);
-        document.getElementById("soloStatus").textContent = "Error loading audio. Try again.";
+        document.getElementById("soloFeedback").textContent = "Error loading audio. Try again.";
     });
+    
+    // Update progress bar
+    soloState.progressInterval = setInterval(() => {
+        if (soloState.audio && !soloState.audio.paused) {
+            const current = soloState.audio.currentTime;
+            const total = soloState.songDuration || 180;
+            const progress = ((current - startProgress) / duration) * 100;
+            const overallProgress = (current / total) * 100;
+            document.getElementById("soloSongProgressFill").style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+        }
+    }, 50);
     
     setTimeout(() => {
         if (soloState.audio) {
             soloState.audio.pause();
+        }
+        if (soloState.progressInterval) {
+            clearInterval(soloState.progressInterval);
         }
     }, duration * 1000);
 };
@@ -183,17 +288,20 @@ document.getElementById("soloSkip").onclick = () => {
     
     soloState.skips++;
     soloState.strikes++;
-    const duration = DURATIONS[Math.min(soloState.skips, 5)];
-    document.getElementById("soloDuration").textContent = `Current: ${duration}s`;
+    const strikeIndex = soloState.strikes - 1;
+    updateProgressBar('solo', strikeIndex, 'skip', 'Skipped');
     document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
     
     if (soloState.strikes >= 6) {
         document.getElementById("soloSkip").disabled = true;
-        document.getElementById("soloSendGuess").disabled = true;
+        document.getElementById("soloGuess").disabled = true;
         document.getElementById("soloFeedback").textContent = `Out of strikes! The correct song was: ${soloState.currentSong}`;
         document.getElementById("soloFeedback").className = "feedback incorrect";
         if (soloState.audio) {
             soloState.audio.pause();
+        }
+        if (soloState.progressInterval) {
+            clearInterval(soloState.progressInterval);
         }
         return;
     }
@@ -202,12 +310,17 @@ document.getElementById("soloSkip").onclick = () => {
         soloState.audio.pause();
         soloState.audio = null;
     }
+    if (soloState.progressInterval) {
+        clearInterval(soloState.progressInterval);
+        document.getElementById("soloSongProgressFill").style.width = "0%";
+    }
 };
 
-document.getElementById("soloSendGuess").onclick = () => {
+// Update guess button - use soloGuess button and soloGuessInput field
+document.getElementById("soloGuess").onclick = () => {
     if (soloState.guessed || soloState.strikes >= 6) return;
     
-    const guess = document.getElementById("soloGuess").value.trim();
+    const guess = document.getElementById("soloGuessInput").value.trim();
     if (!guess) return;
     
     // Check if song exists in list
@@ -222,13 +335,15 @@ document.getElementById("soloSendGuess").onclick = () => {
     if (!matchedSong) {
         soloState.strikes++;
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
+        const strikeIndex = soloState.strikes - 1;
+        updateProgressBar('solo', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
         document.getElementById("soloFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("soloFeedback").className = "feedback not-found";
-        document.getElementById("soloGuess").value = "";
+        document.getElementById("soloGuessInput").value = "";
         
         if (soloState.strikes >= 6) {
             document.getElementById("soloSkip").disabled = true;
-            document.getElementById("soloSendGuess").disabled = true;
+            document.getElementById("soloGuess").disabled = true;
             document.getElementById("soloFeedback").textContent = `Out of strikes! The correct song was: ${soloState.currentSong}`;
             document.getElementById("soloFeedback").className = "feedback incorrect";
             if (soloState.audio) {
@@ -239,25 +354,31 @@ document.getElementById("soloSendGuess").onclick = () => {
         return;
     }
     
+    soloState.strikes++;
+    const strikeIndex = soloState.strikes - 1;
+    
     if (matchedSong.toLowerCase() === soloState.currentSong.toLowerCase()) {
         soloState.guessed = true;
-        soloState.strikes++; // Count the correct guess as a try
+        updateProgressBar('solo', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
         document.getElementById("soloFeedback").textContent = `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`;
         document.getElementById("soloFeedback").className = "feedback correct";
         if (soloState.audio) {
             soloState.audio.pause();
         }
+        if (soloState.progressInterval) {
+            clearInterval(soloState.progressInterval);
+        }
     } else {
-        soloState.strikes++;
+        updateProgressBar('solo', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
         document.getElementById("soloFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
         document.getElementById("soloFeedback").className = "feedback incorrect";
-        document.getElementById("soloGuess").value = "";
+        document.getElementById("soloGuessInput").value = "";
         
         if (soloState.strikes >= 6) {
             document.getElementById("soloSkip").disabled = true;
-            document.getElementById("soloSendGuess").disabled = true;
+            document.getElementById("soloGuess").disabled = true;
             document.getElementById("soloFeedback").textContent = `Out of strikes! The correct song was: ${soloState.currentSong}`;
             document.getElementById("soloFeedback").className = "feedback incorrect";
             if (soloState.audio) {
@@ -278,7 +399,7 @@ document.getElementById("soloNewGame").onclick = () => {
 };
 
 // Autocomplete for Solo
-setupAutocomplete("soloGuess", "soloAutocomplete");
+setupAutocomplete("soloGuessInput", "soloAutocomplete");
 
 // ---------------------------
 // H2H MODE - LOBBY
@@ -291,7 +412,8 @@ document.getElementById("create").onclick = () => {
     }
     
     h2hState.username = username;
-    socket.emit("createLobby", { username });
+    h2hState.gameMode = gameMode;
+    socket.emit("createLobby", { username, gameMode });
 };
 
 socket.on("lobbyCreated", data => {
@@ -310,15 +432,23 @@ socket.on("lobbyCreated", data => {
     h2hGame.style.display = "block";
 
     document.getElementById("lobbyText").innerText = `Lobby: ${data.lobbyId} (Share this code!)`;
-    document.getElementById("h2hDuration").textContent = "Current: 1.0s";
     document.getElementById("h2hStrikes").textContent = "0/6 strikes";
-    document.getElementById("h2hStatus").textContent = "Waiting for opponent...";
+    document.getElementById("h2hStatus").textContent = data.playerCount < 2 ? "Waiting for opponent... (1/2)" : "Game starting...";
     document.getElementById("h2hFeedback").textContent = "";
     document.getElementById("h2hFeedback").className = "feedback";
-    document.getElementById("h2hGuess").value = "";
+    document.getElementById("h2hGuessInput").value = "";
     updateScoreDisplay();
     disableGameControls();
     document.getElementById("h2hNewGame").disabled = true;
+    
+    // Reset progress bars
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`h2hBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
 });
 
 document.getElementById("join").onclick = () => {
@@ -337,19 +467,31 @@ document.getElementById("join").onclick = () => {
 };
 
 socket.on("playerJoined", data => {
+    console.log("Player joined event received:", data);
     h2hState.playerCount = data.playerCount;
     h2hState.scores = data.scores || {};
     updateScoreDisplay();
     
     if (data.playerCount < 2) {
-        document.getElementById("h2hStatus").textContent = "Waiting for opponent...";
+        document.getElementById("h2hStatus").textContent = `Waiting for opponent... (${data.playerCount}/2)`;
         disableGameControls();
+    } else {
+        // Game will start, wait for gameStart event
+        document.getElementById("h2hStatus").textContent = "Game starting... (2/2)";
+        // Note: gameStart event will handle the actual UI update
     }
 });
 
 socket.on("gameStart", data => {
+    console.log("Received gameStart event:", data, "Current state:", h2hState);
+    
+    // Make sure we're in the game view
+    h2hMenu.style.display = "none";
+    h2hGame.style.display = "block";
+    
     h2hState.currentSong = data.song;
     h2hState.startTime = data.startTime;
+    h2hState.gameMode = data.gameMode || 'regular';
     h2hState.skips = 0;
     h2hState.guessed = false;
     h2hState.strikes = 0;
@@ -357,20 +499,49 @@ socket.on("gameStart", data => {
     h2hState.roundFinished = false;
     h2hState.finished = false;
     h2hState.scores = data.scores || {};
+    
+    // Update lobby ID if provided
+    if (data.lobbyId) {
+        h2hState.lobbyId = data.lobbyId;
+    }
 
-    h2hMenu.style.display = "none";
-    h2hGame.style.display = "block";
-
-    document.getElementById("lobbyText").innerText = "Lobby: " + h2hState.lobbyId;
-    document.getElementById("h2hDuration").textContent = "Current: 1.0s";
+    const statusEl = document.getElementById("h2hStatus");
+    const lobbyTextEl = document.getElementById("lobbyText");
+    
+    if (lobbyTextEl) {
+        lobbyTextEl.innerText = "Lobby: " + h2hState.lobbyId;
+    }
+    if (statusEl) {
+        statusEl.textContent = "Game started!";
+    }
+    
     document.getElementById("h2hStrikes").textContent = "0/6 strikes";
-    document.getElementById("h2hStatus").textContent = "Game started!";
     document.getElementById("h2hFeedback").textContent = "";
     document.getElementById("h2hFeedback").className = "feedback";
-    document.getElementById("h2hGuess").value = "";
+    document.getElementById("h2hGuessInput").value = "";
     updateScoreDisplay();
     enableGameControls();
     document.getElementById("h2hNewGame").disabled = true;
+    
+    // Reset progress bars
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`h2hBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    // Reset song progress bar
+    const progressFill = document.getElementById("h2hSongProgressFill");
+    if (progressFill) {
+        progressFill.style.width = "0%";
+    }
+    
+    // Get song duration for progress bar
+    getSongDuration(data.song).then(duration => {
+        h2hState.songDuration = duration;
+    });
 });
 
 socket.on("lobbyError", msg => {
@@ -383,13 +554,13 @@ socket.on("lobbyError", msg => {
 function enableGameControls() {
     document.getElementById("h2hPlay").disabled = false;
     document.getElementById("h2hSkip").disabled = false;
-    document.getElementById("h2hSendGuess").disabled = false;
+    document.getElementById("h2hGuess").disabled = false;
 }
 
 function disableGameControls() {
     document.getElementById("h2hPlay").disabled = true;
     document.getElementById("h2hSkip").disabled = true;
-    document.getElementById("h2hSendGuess").disabled = true;
+    document.getElementById("h2hGuess").disabled = true;
 }
 
 function updateScoreDisplay() {
@@ -444,14 +615,14 @@ document.getElementById("h2hSkip").onclick = () => {
     
     h2hState.skips++;
     h2hState.strikes++;
-    const duration = DURATIONS[Math.min(h2hState.skips, 5)];
-    document.getElementById("h2hDuration").textContent = `Current: ${duration}s`;
+    const strikeIndex = h2hState.strikes - 1;
+    updateProgressBar('h2h', strikeIndex, 'skip', 'Skipped');
     document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
     
         if (h2hState.strikes >= 6) {
             h2hState.finished = true;
             document.getElementById("h2hSkip").disabled = true;
-            document.getElementById("h2hSendGuess").disabled = true;
+            document.getElementById("h2hGuess").disabled = true;
             document.getElementById("h2hFeedback").textContent = `Out of strikes! You lost this round.`;
             document.getElementById("h2hFeedback").className = "feedback incorrect";
             if (h2hState.audio) {
@@ -471,10 +642,10 @@ document.getElementById("h2hSkip").onclick = () => {
     }
 };
 
-document.getElementById("h2hSendGuess").onclick = () => {
+document.getElementById("h2hGuess").onclick = () => {
     if (h2hState.guessed || !h2hState.currentSong || !h2hState.username || h2hState.strikes >= 6 || !h2hState.gameStarted || h2hState.roundFinished) return;
     
-    const guess = document.getElementById("h2hGuess").value.trim();
+    const guess = document.getElementById("h2hGuessInput").value.trim();
     if (!guess) return;
     
     // Check if song exists in list
@@ -488,15 +659,17 @@ document.getElementById("h2hSendGuess").onclick = () => {
     
     if (!matchedSong) {
         h2hState.strikes++;
+        const strikeIndex = h2hState.strikes - 1;
+        updateProgressBar('h2h', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("h2hFeedback").className = "feedback not-found";
-        document.getElementById("h2hGuess").value = "";
+        document.getElementById("h2hGuessInput").value = "";
         
         if (h2hState.strikes >= 6) {
             h2hState.finished = true;
             document.getElementById("h2hSkip").disabled = true;
-            document.getElementById("h2hSendGuess").disabled = true;
+            document.getElementById("h2hGuess").disabled = true;
             document.getElementById("h2hFeedback").textContent = `Out of strikes! You lost this round.`;
             document.getElementById("h2hFeedback").className = "feedback incorrect";
             if (h2hState.audio) {
@@ -523,25 +696,33 @@ document.getElementById("h2hSendGuess").onclick = () => {
         timestamp: timestamp
     });
     
+    h2hState.strikes++;
+    const strikeIndex = h2hState.strikes - 1;
+    
     if (matchedSong.toLowerCase() === h2hState.currentSong.toLowerCase()) {
         h2hState.guessed = true;
         h2hState.finished = true;
+        updateProgressBar('h2h', strikeIndex, 'correct', 'Guessed Correct!');
+        document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `Correct! Waiting for opponent...`;
         document.getElementById("h2hFeedback").className = "feedback correct";
         if (h2hState.audio) {
             h2hState.audio.pause();
         }
+        if (h2hState.progressInterval) {
+            clearInterval(h2hState.progressInterval);
+        }
     } else {
-        h2hState.strikes++;
+        updateProgressBar('h2h', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
         document.getElementById("h2hFeedback").className = "feedback incorrect";
-        document.getElementById("h2hGuess").value = "";
+        document.getElementById("h2hGuessInput").value = "";
         
         if (h2hState.strikes >= 6) {
             h2hState.finished = true;
             document.getElementById("h2hSkip").disabled = true;
-            document.getElementById("h2hSendGuess").disabled = true;
+            document.getElementById("h2hGuess").disabled = true;
             document.getElementById("h2hFeedback").textContent = `Out of strikes! You lost this round.`;
             document.getElementById("h2hFeedback").className = "feedback incorrect";
             if (h2hState.audio) {
@@ -598,6 +779,58 @@ document.getElementById("h2hNewGame").onclick = () => {
     if (!h2hState.roundFinished) return;
     socket.emit("newRound", { lobbyId: h2hState.lobbyId });
 };
+
+// ---------------------------
+// CHAT FUNCTIONALITY
+// ---------------------------
+document.getElementById("h2hChatSend").onclick = () => {
+    const input = document.getElementById("h2hChatInput");
+    const message = input.value.trim();
+    if (!message) return;
+    
+    if (!h2hState.username || !h2hState.lobbyId) {
+        alert("Not in a lobby yet");
+        return;
+    }
+    
+    console.log("Sending chat message:", { lobbyId: h2hState.lobbyId, username: h2hState.username, message });
+    
+    socket.emit("chatMessage", {
+        lobbyId: h2hState.lobbyId,
+        username: h2hState.username,
+        message: message
+    });
+    
+    input.value = "";
+};
+
+document.getElementById("h2hChatInput").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        document.getElementById("h2hChatSend").click();
+    }
+});
+
+socket.on("chatMessage", data => {
+    console.log("Received chat message:", data);
+    const chatMessages = document.getElementById("h2hChatMessages");
+    if (!chatMessages) {
+        console.error("Chat messages container not found!");
+        return;
+    }
+    
+    const messageDiv = document.createElement("div");
+    messageDiv.className = "chat-message";
+    
+    const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    messageDiv.innerHTML = `<span class="username">${data.username}:</span> ${data.message} <span style="color: #666; font-size: 11px; margin-left: 5px;">${time}</span>`;
+    
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    requestAnimationFrame(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+});
 
 socket.on("opponentGuess", data => {
     document.getElementById("h2hStatus").textContent = `${data.username} guessed! Waiting for results...`;
@@ -680,4 +913,4 @@ function hideAutocomplete(mode) {
 }
 
 // Setup autocomplete for H2H
-setupAutocomplete("h2hGuess", "h2hAutocomplete");
+setupAutocomplete("h2hGuessInput", "h2hAutocomplete");
