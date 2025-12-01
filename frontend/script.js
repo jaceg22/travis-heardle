@@ -2,7 +2,131 @@
 // CONFIG
 // ---------------------------
 const SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+const SUPABASE_COVERS_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/album";
 const BACKEND_URL = "https://travis-heardle.onrender.com";
+
+// Album cover mapping: song name -> album cover filename
+// Images should be in Supabase Storage at: /album/{filename}
+const ALBUM_COVERS = {
+    // UTOPIA (2023)
+    "HYAENA": "utopia",
+    "THANK GOD": "utopia",
+    "MODERN JAM": "utopia",
+    "MY EYES": "utopia",
+    "GOD'S COUNTRY": "utopia",
+    "SIRENS": "utopia",
+    "MELTDOWN": "utopia",
+    "FE!N": "utopia",
+    "DELRESTO (ECHOES)": "utopia",
+    "I KNOW ?": "utopia",
+    "TOPIA TWINS": "utopia",
+    "CIRCUS MAXIMUS": "utopia",
+    "PARASAIL": "utopia",
+    "SKITZO": "utopia",
+    "LOST FOREVER": "utopia",
+    "LOOOVE": "utopia",
+    "K-POP": "utopia",
+    "TELEKINESIS": "utopia",
+    "TIL FURTHER NOTICE": "utopia",
+    
+    // ASTROWORLD (2018)
+    "STARGAZING": "astroworld",
+    "CAROUSEL": "astroworld",
+    "SICKO MODE": "astroworld",
+    "R.I.P. SCREW": "astroworld",
+    "STOP TRYING TO BE GOD": "astroworld",
+    "NO BYSTANDERS": "astroworld",
+    "SKELETONS": "astroworld",
+    "WAKE UP": "astroworld",
+    "NC-17": "astroworld",
+    "ASTROTHUNDER": "astroworld",
+    "YOSEMITE": "astroworld",
+    "CAN'T SAY": "astroworld",
+    "WHO? WHAT!": "astroworld",
+    "BUTTERFLY EFFECT": "astroworld",
+    "HOUSTONFORNICATION": "astroworld",
+    "COFFEE BEAN": "astroworld",
+    
+    // BIRDS IN THE TRAP SING MCKNIGHT (2016)
+    "the ends": "bittsm",
+    "way back": "bittsm",
+    "coordinate": "bittsm",
+    "through the late night": "bittsm",
+    "biebs in the trap": "bittsm",
+    "sdp interlude": "bittsm",
+    "sweet sweet": "bittsm",
+    "outside": "bittsm",
+    "goosebumps": "bittsm",
+    "first take": "bittsm",
+    "guidance": "bittsm",
+    "wonderful": "bittsm",
+    
+    // RODEO (2015)
+    "90210": "rodeo",
+    "Pray 4 Love": "rodeo",
+    "Nightcrawler": "rodeo",
+    "Antidote": "rodeo",
+    "Impossible": "rodeo",
+    "Apple Pie": "rodeo",
+    "I Can Tell": "rodeo",
+    "3500": "rodeo",
+    "Never Catch Me": "rodeo",
+    "Pornography": "rodeo",
+    "Maria I'm Drunk": "rodeo",
+    
+    // DAYS BEFORE RODEO (2014)
+    "Mamacita": "dbr",
+    "Don't Play": "dbr",
+    "Skyfall": "dbr",
+    "Drugs You Should Try It": "dbr",
+    "Sloppy Toppy": "dbr",
+    "Grey": "dbr",
+    "BACC": "dbr",
+    "Basement Freestyle": "dbr",
+    "Backyard": "dbr",
+    "Mo City Flexologist": "dbr",
+    "Quintana Pt. 2": "dbr",
+    "The Prayer": "dbr",
+    "Zombies": "dbr",
+    
+    // OWL PHARAOH (2013)
+    "Quintana": "owl",
+    "Drive": "owl",
+    "Upper Echelon": "owl",
+    "Dance on the Moon": "owl",
+    "Uptown": "owl",
+    "Bad Mood Shit On You": "owl",
+    "16 Chapels": "owl",
+    "Bandz": "owl",
+    "Hell of a Night": "owl",
+    "Naked": "owl",
+    "Blocka La Flame": "owl",
+    "MIA": "owl",
+    
+    // NOT ALL HEROES WEAR CAPES - Metro Boomin (2018)
+    "Overdue": "nahwc",
+    "Only 1": "nahwc",
+    
+    // JB2
+    "FLORIDA FLOW": "jb2",
+    "PBT": "jb2",
+    "DA WIZARD": "jb2",
+    "CHAMPAIN & VACAY": "jb2",
+    "DUMBO": "jb2",
+    "KICK OUT": "jb2",
+    
+    // A-TEAM
+    "A-Team": "ateam",
+    
+    // OTHER (singles/collabs/etc.)
+    "THE SCOTTS": "travis",
+    "MAFIA": "travis",
+    "ESCAPE PLAN": "travis",
+    "Watch": "travis",
+    "Trance": "travis",
+    "Raindrops (Insane)": "travis",
+    "Highest in the Room": "travis"
+};
 
 const DURATIONS = [1, 2.5, 4.5, 8, 16, 30];
 
@@ -357,6 +481,8 @@ document.getElementById("soloSkip").onclick = () => {
         if (soloState.audio) {
             soloState.audio.pause();
         }
+        // Show result modal
+        showSongResultModal(soloState.currentSong, `Incorrect! The song was: ${soloState.currentSong}`, false);
         if (soloState.progressInterval) {
             clearInterval(soloState.progressInterval);
         }
@@ -423,6 +549,8 @@ document.getElementById("soloGuess").onclick = () => {
         if (soloState.audio) {
             soloState.audio.pause();
         }
+        // Show result modal
+        showSongResultModal(soloState.currentSong, `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`, true);
         if (soloState.progressInterval) {
             clearInterval(soloState.progressInterval);
         }
@@ -858,6 +986,8 @@ socket.on("opponentStrikesOut", data => {
 socket.on("playerStrikesOutResponse", data => {
     document.getElementById("h2hFeedback").textContent = `Out of strikes! The song was: ${data.song}`;
     document.getElementById("h2hFeedback").className = "feedback incorrect";
+    // Show result modal
+    showSongResultModal(data.song, `Incorrect! The song was: ${data.song}`, false);
 });
 
 socket.on("gameOver", data => {
@@ -877,7 +1007,8 @@ socket.on("gameOver", data => {
     
     // Enable request new song button
     document.getElementById("h2hRequestNewSong").disabled = false;
-    document.getElementById("h2hFeedback").textContent = `Correct song: ${data.song || h2hState.currentSong}`;
+    const songName = data.song || h2hState.currentSong;
+    document.getElementById("h2hFeedback").textContent = `Correct song: ${songName}`;
     h2hState.guessed = true;
     h2hState.finished = true;
     
@@ -890,6 +1021,13 @@ socket.on("gameOver", data => {
     if (h2hState.audio) {
         h2hState.audio.pause();
     }
+    
+    // Show result modal
+    const isWinner = data.winner === h2hState.username;
+    const resultMessage = isWinner 
+        ? `You guessed "${songName}" in ${data.winnerStrikes || '?'} tries!`
+        : `Incorrect! The song was: ${songName}`;
+    showSongResultModal(songName, resultMessage, isWinner);
 });
 
 document.getElementById("h2hRequestNewSong").onclick = () => {
@@ -1100,6 +1238,78 @@ function hideAutocomplete(mode) {
     const listId = mode === "solo" ? "soloAutocomplete" : "h2hAutocomplete";
     document.getElementById(listId).style.display = "none";
 }
+
+// ---------------------------
+// SONG RESULT MODAL
+// ---------------------------
+function getAlbumCoverUrl(songName) {
+    // Check if we have a custom cover mapped
+    if (ALBUM_COVERS[songName]) {
+        const albumName = ALBUM_COVERS[songName];
+        // Try common image extensions
+        return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(albumName)}.jpg`;
+    }
+    // Default to "travis" album cover if song not found
+    return `${SUPABASE_COVERS_BASE}/travis.jpg`;
+}
+
+function showSongResultModal(songName, resultMessage, isCorrect) {
+    const modal = document.getElementById("songResultModal");
+    const albumImage = document.getElementById("modalAlbumImage");
+    const songNameEl = document.getElementById("modalSongName");
+    const resultMessageEl = document.getElementById("modalResultMessage");
+    
+    // Set song name
+    songNameEl.textContent = songName;
+    
+    // Set result message
+    resultMessageEl.textContent = resultMessage;
+    resultMessageEl.style.color = isCorrect ? "#0f0" : "#ff4444";
+    
+    // Load album cover
+    const coverUrl = getAlbumCoverUrl(songName);
+    albumImage.src = coverUrl;
+    albumImage.onerror = () => {
+        // If image fails to load, use a placeholder
+        albumImage.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Crect fill='%23333' width='250' height='250'/%3E%3Ctext fill='%23999' font-family='Arial' font-size='16' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ENo Cover%3C/text%3E%3C/svg%3E";
+    };
+    
+    // Show modal
+    modal.style.display = "flex";
+}
+
+function hideSongResultModal() {
+    const modal = document.getElementById("songResultModal");
+    modal.style.display = "none";
+}
+
+// Setup modal handlers after DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+    const closeBtn = document.getElementById("modalCloseBtn");
+    const modal = document.getElementById("songResultModal");
+    
+    if (closeBtn) {
+        closeBtn.onclick = hideSongResultModal;
+    }
+    
+    if (modal) {
+        modal.onclick = (e) => {
+            if (e.target.id === "songResultModal") {
+                hideSongResultModal();
+            }
+        };
+    }
+    
+    // Close on Escape key
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            const modalEl = document.getElementById("songResultModal");
+            if (modalEl && modalEl.style.display === "flex") {
+                hideSongResultModal();
+            }
+        }
+    });
+});
 
 // Setup autocomplete for H2H
 setupAutocomplete("h2hGuessInput", "h2hAutocomplete");
