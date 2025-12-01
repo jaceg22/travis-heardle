@@ -93,7 +93,8 @@ io.on("connection", (socket) => {
       duration: null,
       timestamp: null,
       username: username,
-      strikesOut: false
+      strikesOut: false,
+      strikes: 0
     };
     
     // Initialize score for creator
@@ -128,13 +129,14 @@ io.on("connection", (socket) => {
     }
 
     if (!game.players[username]) {
-    game.players[username] = {
-      finished: false,
+      game.players[username] = {
+        finished: false,
         duration: null,
         timestamp: null,
         username: username,
-        strikesOut: false
-    };
+        strikesOut: false,
+        strikes: 0
+      };
       
       // Initialize score for new player
       game.scores[username] = { wins: 0, losses: 0 };
@@ -163,6 +165,7 @@ io.on("connection", (socket) => {
         p.duration = null;
         p.timestamp = null;
         p.strikesOut = false;
+        p.strikes = 0;
       });
       // Send gameStart to ALL players in the lobby (including host)
       console.log(`Starting game for lobby ${lobbyId} with ${playerCount} players`);
@@ -185,7 +188,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playerGuess", ({ lobbyId, username, guess, duration, timestamp }) => {
+  socket.on("playerGuess", ({ lobbyId, username, guess, duration, timestamp, strikes }) => {
     const game = lobbies[lobbyId];
     if (!game || !game.started || game.roundFinished) return;
 
@@ -199,6 +202,7 @@ io.on("connection", (socket) => {
       player.finished = true;
       player.duration = duration;
       player.timestamp = timestamp || Date.now();
+      player.strikes = strikes || 0;
 
       // Notify other players
       socket.to(lobbyId).emit("opponentGuess", { username });
@@ -208,7 +212,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playerStrikesOut", ({ lobbyId, username }) => {
+  socket.on("playerStrikesOut", ({ lobbyId, username, strikes }) => {
     const game = lobbies[lobbyId];
     if (!game || !game.started || game.roundFinished) return;
 
@@ -219,6 +223,7 @@ io.on("connection", (socket) => {
     player.finished = true;
     player.duration = 999; // High value so they lose
     player.timestamp = Date.now();
+    player.strikes = strikes || 6;
 
     // Notify other players
     socket.to(lobbyId).emit("opponentStrikesOut", { username });
@@ -242,6 +247,7 @@ io.on("connection", (socket) => {
       p.duration = null;
       p.timestamp = null;
       p.strikesOut = false;
+      p.strikes = 0;
     });
 
     io.to(lobbyId).emit("gameStart", {
@@ -322,38 +328,41 @@ function checkRoundEnd(game, lobbyId) {
         scores: game.scores
       });
     } else {
-      // Both players finished - compare durations
+      // Both players finished - compare strikes first
+      // If same strikes, it's a tie. If different strikes, fewer strikes wins.
       const sortedPlayers = validPlayers.sort((a, b) => {
-        if (a.duration !== b.duration) {
-          return a.duration - b.duration;
+        // First compare strikes (fewer is better)
+        if (a.strikes !== b.strikes) {
+          return a.strikes - b.strikes;
         }
+        // If same strikes, compare timestamp (earlier is better for tie-breaker display)
         return a.timestamp - b.timestamp;
       });
 
-      const winner = sortedPlayers[0].username;
-      const loser = sortedPlayers[1].username;
-      game.scores[winner].wins++;
-      game.scores[loser].losses++;
+      // Check if all players have the same number of strikes
+      const strikes = sortedPlayers.map(p => p.strikes);
+      const allSameStrikes = strikes.every(s => s === strikes[0]);
 
-      // Check for tie (same duration and timestamp within 100ms)
-      const topDuration = sortedPlayers[0].duration;
-      const topTimestamp = sortedPlayers[0].timestamp;
-      const tiedPlayers = sortedPlayers.filter(p => 
-        p.duration === topDuration && Math.abs(p.timestamp - topTimestamp) < 100
-      );
-
-      if (tiedPlayers.length > 1) {
-        // It's a tie - no score changes
+      if (allSameStrikes) {
+        // Same number of strikes = tie (regardless of duration)
         io.to(lobbyId).emit("gameOver", {
           winner: "tie",
-          duration: topDuration,
-          players: tiedPlayers.map(p => p.username),
+          duration: sortedPlayers[0].duration,
+          strikes: strikes[0],
+          players: sortedPlayers.map(p => p.username),
           scores: game.scores
         });
       } else {
-          io.to(lobbyId).emit("gameOver", {
+        // Different strikes - winner is the one with fewer strikes
+        const winner = sortedPlayers[0].username;
+        const loser = sortedPlayers[1].username;
+        game.scores[winner].wins++;
+        game.scores[loser].losses++;
+        
+        io.to(lobbyId).emit("gameOver", {
           winner: winner,
           winnerDuration: sortedPlayers[0].duration,
+          winnerStrikes: sortedPlayers[0].strikes,
           song: game.song,
           scores: game.scores
         });
