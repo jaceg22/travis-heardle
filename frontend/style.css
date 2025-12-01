@@ -1,33 +1,52 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
     background: #111;
     color: white;
-    text-align: center;
-    margin: 0;
-    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-h1, h2 {
+h1, h2, h3 {
     color: #fff;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 /* HOME PAGE */
 #home {
-    max-width: 600px;
+    max-width: 800px;
     margin: 100px auto;
+    text-align: center;
 }
 
 .mode-selection {
     display: flex;
-    gap: 40px;
+    gap: 60px;
     justify-content: center;
     margin-top: 50px;
 }
 
+.mode-option {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.mode-option h3 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
 .mode-btn {
-    padding: 30px 60px;
-    font-size: 32px;
+    padding: 20px 40px;
+    font-size: 24px;
     font-weight: bold;
     background: #333;
     color: white;
@@ -35,6 +54,7 @@ h1, h2 {
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s;
+    min-width: 150px;
 }
 
 .mode-btn:hover {
@@ -45,59 +65,140 @@ h1, h2 {
 
 /* GAME AREA */
 #soloGame, #h2hGame {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
-}
-
-.audio-controls {
+    padding: 20px;
+    flex: 1;
     display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
-    margin: 30px 0;
+    flex-direction: column;
 }
 
-button {
-    padding: 12px 24px;
-    margin: 8px;
-    font-size: 18px;
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.home-btn-top {
+    padding: 10px 20px;
+    font-size: 16px;
     background: #333;
     color: white;
     border: 2px solid #555;
     border-radius: 5px;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
-button:hover {
-    background: #444;
-    border-color: #777;
-}
-
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-#soloDuration, #h2hDuration {
-    font-size: 20px;
-    font-weight: bold;
-    color: #0f0;
-}
-
-#soloStrikes, #h2hStrikes {
+.strikes-display {
     font-size: 18px;
     font-weight: bold;
     color: #ff6;
 }
 
+/* PROGRESS BARS */
+.progress-bars-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 30px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 60px;
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    font-size: 18px;
+    color: #aaa;
+    transition: all 0.3s;
+}
+
+.progress-bar.filled {
+    background: #2a2a2a;
+}
+
+.progress-bar.skipped {
+    background: #444;
+    color: #ff0;
+    font-weight: bold;
+}
+
+.progress-bar.correct {
+    background: #0a4;
+    color: white;
+    font-weight: bold;
+}
+
+.progress-bar.incorrect {
+    background: #a00;
+    color: white;
+    font-weight: bold;
+}
+
+/* SONG PROGRESS BAR */
+.song-progress-container {
+    width: 100%;
+    margin: 20px 0;
+}
+
+.song-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.song-progress-fill {
+    height: 100%;
+    background: #0f0;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* CONTROLS */
+.controls-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.control-btn {
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    background: #333;
+    color: white;
+    border: 3px solid #555;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 120px;
+}
+
+.control-btn:hover:not(:disabled) {
+    background: #444;
+    border-color: #777;
+    transform: scale(1.05);
+}
+
+.control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* GUESS SECTION */
 .guess-section {
     display: flex;
-    gap: 15px;
     justify-content: center;
-    align-items: flex-start;
-    margin: 30px 0;
+    margin: 20px 0;
     position: relative;
 }
 
@@ -107,13 +208,13 @@ button:disabled {
 }
 
 input[type="text"] {
-    padding: 12px;
+    padding: 15px;
     font-size: 18px;
-    width: 400px;
+    width: 500px;
     background: #222;
     color: white;
     border: 2px solid #555;
-    border-radius: 5px;
+    border-radius: 8px;
 }
 
 input[type="text"]:focus {
@@ -131,7 +232,7 @@ input[type="text"]:focus {
     background: #222;
     border: 2px solid #555;
     border-top: none;
-    border-radius: 0 0 5px 5px;
+    border-radius: 0 0 8px 8px;
     z-index: 1000;
     display: none;
 }
@@ -156,6 +257,7 @@ input[type="text"]:focus {
     min-height: 30px;
     font-size: 18px;
     margin: 20px 0;
+    text-align: center;
 }
 
 .feedback {
@@ -164,7 +266,8 @@ input[type="text"]:focus {
     font-weight: bold;
     margin: 20px 0;
     padding: 15px;
-    border-radius: 5px;
+    border-radius: 8px;
+    text-align: center;
 }
 
 .feedback.correct {
@@ -182,10 +285,30 @@ input[type="text"]:focus {
     color: #000;
 }
 
+/* SCORE DISPLAY */
+.score-display {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0f0;
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(0, 255, 0, 0.1);
+    border-radius: 5px;
+    text-align: center;
+}
+
+.lobby-info {
+    font-size: 18px;
+    margin: 10px 0;
+    text-align: center;
+    color: #aaa;
+}
+
 /* LOBBY MENU */
 #h2hMenu {
     max-width: 600px;
     margin: 100px auto;
+    text-align: center;
 }
 
 .lobby-menu {
@@ -207,43 +330,124 @@ input[type="text"]:focus {
     border-radius: 10px;
 }
 
-.back-btn, .new-game-btn, .home-btn {
-    margin-top: 30px;
-    padding: 10px 20px;
-    font-size: 16px;
-}
-
+/* GAME ACTIONS */
 .game-actions {
     display: flex;
     gap: 15px;
     justify-content: center;
-    margin-top: 30px;
+    margin: 30px 0;
 }
 
-.score-display {
+.new-game-btn, .home-btn {
+    padding: 12px 24px;
     font-size: 18px;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.new-game-btn:hover:not(:disabled), .home-btn:hover {
+    background: #444;
+}
+
+.new-game-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* CHAT */
+.chat-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border-top: 2px solid #555;
+    padding: 15px;
+    height: 350px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 250px;
+    max-height: 250px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #111;
+    border-radius: 5px;
+    scroll-behavior: smooth;
+}
+
+.chat-message {
+    padding: 5px 0;
+    font-size: 14px;
+}
+
+.chat-message .username {
     font-weight: bold;
     color: #0f0;
-    margin: 15px 0;
+    margin-right: 5px;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input-container input {
+    flex: 1;
     padding: 10px;
-    background: rgba(0, 255, 0, 0.1);
+    font-size: 14px;
+    background: #222;
+    color: white;
+    border: 2px solid #555;
     border-radius: 5px;
 }
 
+.chat-input-container button {
+    padding: 10px 20px;
+    font-size: 14px;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.chat-input-container button:hover {
+    background: #444;
+}
+
 /* SCROLLBAR */
-.autocomplete-list::-webkit-scrollbar {
+.autocomplete-list::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar {
     width: 8px;
 }
 
-.autocomplete-list::-webkit-scrollbar-track {
+.autocomplete-list::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track {
     background: #111;
 }
 
-.autocomplete-list::-webkit-scrollbar-thumb {
+.autocomplete-list::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb {
     background: #555;
     border-radius: 4px;
 }
 
-.autocomplete-list::-webkit-scrollbar-thumb:hover {
+.autocomplete-list::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover {
     background: #777;
+}
+
+/* Adjust game container when chat is visible */
+#h2hGame {
+    padding-bottom: 370px;
 }
