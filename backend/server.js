@@ -66,7 +66,7 @@ function randomStart() {
 // ---------------------------
 io.on("connection", (socket) => {
 
-  socket.on("createLobby", ({ username }) => {
+  socket.on("createLobby", ({ username, gameMode }) => {
     if (!username) {
       socket.emit("lobbyError", "Username required");
       return;
@@ -75,7 +75,7 @@ io.on("connection", (socket) => {
     const lobbyId = Math.random().toString(36).substring(2, 7).toUpperCase();
 
     const selectedSong = randomSong();
-    const start = randomStart();
+    const start = gameMode === 'random' ? randomStart() : 0;
 
     lobbies[lobbyId] = {
       song: selectedSong,
@@ -83,7 +83,8 @@ io.on("connection", (socket) => {
       players: {},
       started: false,
       scores: {},
-      roundFinished: false
+      roundFinished: false,
+      gameMode: gameMode || 'regular'
     };
 
     // Add creator as first player
@@ -102,6 +103,8 @@ io.on("connection", (socket) => {
     
     // Store the socket's username if provided (or generate one)
     socket.data = { lobbyId, username, isCreator: true };
+    
+    console.log(`Lobby ${lobbyId} created by ${username}, socket joined room`);
 
     socket.emit("lobbyCreated", {
       lobbyId,
@@ -139,9 +142,12 @@ io.on("connection", (socket) => {
 
     socket.join(lobbyId);
     socket.data = { ...socket.data, lobbyId, username };
+    
+    console.log(`${username} joined lobby ${lobbyId}`);
 
     // Notify all players about player count
     const playerCount = Object.keys(game.players).length;
+    console.log(`Lobby ${lobbyId} now has ${playerCount} players`);
     io.to(lobbyId).emit("playerJoined", {
       playerCount,
       scores: game.scores
@@ -158,17 +164,24 @@ io.on("connection", (socket) => {
         p.timestamp = null;
         p.strikesOut = false;
       });
+      // Send gameStart to ALL players in the lobby (including host)
+      console.log(`Starting game for lobby ${lobbyId} with ${playerCount} players`);
       io.to(lobbyId).emit("gameStart", {
         song: game.song,
         startTime: game.startTime,
-        scores: game.scores
+        scores: game.scores,
+        gameMode: game.gameMode,
+        lobbyId: lobbyId
       });
     } else if (game.started) {
-    socket.emit("gameStart", {
-      song: game.song,
+      // If game already started, just send to the joining player
+      socket.emit("gameStart", {
+        song: game.song,
         startTime: game.startTime,
-        scores: game.scores
-    });
+        scores: game.scores,
+        gameMode: game.gameMode,
+        lobbyId: lobbyId
+      });
     }
   });
 
@@ -220,7 +233,7 @@ io.on("connection", (socket) => {
 
     // Generate new song
     game.song = randomSong();
-    game.startTime = randomStart();
+    game.startTime = game.gameMode === 'random' ? randomStart() : 0;
     game.roundFinished = false;
     
     // Reset player states
@@ -234,7 +247,8 @@ io.on("connection", (socket) => {
     io.to(lobbyId).emit("gameStart", {
       song: game.song,
       startTime: game.startTime,
-      scores: game.scores
+      scores: game.scores,
+      gameMode: game.gameMode
     });
   });
 
@@ -256,6 +270,22 @@ io.on("connection", (socket) => {
     for (const [lobbyId, game] of Object.entries(lobbies)) {
       // Could add logic to remove player from game here if needed
     }
+  });
+
+  socket.on("chatMessage", ({ lobbyId, username, message }) => {
+    const game = lobbies[lobbyId];
+    if (!game) {
+      console.log(`Chat: Lobby ${lobbyId} not found`);
+      return;
+    }
+    
+    console.log(`Chat: Broadcasting message from ${username} in lobby ${lobbyId}`);
+    
+    io.to(lobbyId).emit("chatMessage", {
+      username,
+      message,
+      timestamp: Date.now()
+    });
   });
 });
 
