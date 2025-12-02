@@ -6,8 +6,32 @@
 </head>
 <body>
 
+<!-- LOGIN PAGE -->
+<div id="loginPage" style="display: block;">
+    <div class="login-container">
+        <h1>Travis Scott Heardle</h1>
+        <div id="loginForm">
+            <h2>Login</h2>
+            <input id="loginUsername" type="text" placeholder="Username" autocomplete="username">
+            <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
+            <button id="loginBtn" class="login-btn">Login</button>
+            <button id="showRegisterBtn" class="link-btn">Don't have an account? Register</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+        <div id="registerForm" style="display:none;">
+            <h2>Register</h2>
+            <input id="registerUsername" type="text" placeholder="Username" autocomplete="username">
+            <input id="registerPassword" type="password" placeholder="Password" autocomplete="new-password">
+            <input id="registerConfirmPassword" type="password" placeholder="Confirm Password" autocomplete="new-password">
+            <button id="registerBtn" class="login-btn">Register</button>
+            <button id="showLoginBtn" class="link-btn">Already have an account? Login</button>
+            <div id="registerError" class="error-message"></div>
+        </div>
+    </div>
+</div>
+
 <!-- HOME PAGE -->
-<div id="home">
+<div id="home" style="display:none;">
     <h1>Travis Scott Heardle</h1>
     <div class="mode-selection">
         <div class="mode-option">
@@ -20,6 +44,14 @@
             <button id="h2hRegularBtn" class="mode-btn">Regular</button>
             <button id="h2hRandomBtn" class="mode-btn">Random</button>
         </div>
+        <div class="mode-option">
+            <h3>Speed</h3>
+            <button id="speedBtn" class="mode-btn">Speed Mode</button>
+        </div>
+    </div>
+    <div class="user-info">
+        <span id="loggedInUser"></span>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
     </div>
 </div>
 
@@ -133,6 +165,72 @@
         <div class="chat-input-container">
             <input id="h2hChatInput" placeholder="Type a message..." autocomplete="off">
             <button id="h2hChatSend">Send</button>
+        </div>
+    </div>
+</div>
+
+<!-- SPEED MODE -->
+<div id="speedGame" style="display:none;">
+    <div class="game-header">
+        <button id="speedHome" class="home-btn-top">Home</button>
+        <div class="speed-info">
+            <span id="speedTimer" class="timer-display">0:00</span>
+            <span id="speedRound" class="round-display">Round 1/15</span>
+            <span id="speedStrikes" class="strikes-display">0/6 strikes</span>
+        </div>
+    </div>
+
+    <div class="progress-bars-container">
+        <div id="speedBar1" class="progress-bar"></div>
+        <div id="speedBar2" class="progress-bar"></div>
+        <div id="speedBar3" class="progress-bar"></div>
+        <div id="speedBar4" class="progress-bar"></div>
+        <div id="speedBar5" class="progress-bar"></div>
+        <div id="speedBar6" class="progress-bar"></div>
+    </div>
+
+    <div class="song-progress-container">
+        <div id="speedSongProgress" class="song-progress-bar">
+            <div id="speedSongProgressFill" class="song-progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <button id="speedPlay" class="control-btn">Play</button>
+        <button id="speedSkip" class="control-btn">Skip</button>
+        <button id="speedGuess" class="control-btn">Guess</button>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="speedGuessInput" placeholder="Your Guess" autocomplete="off">
+            <div id="speedAutocomplete" class="autocomplete-list"></div>
+        </div>
+    </div>
+
+    <div id="speedFeedback" class="feedback"></div>
+</div>
+
+<!-- SPEED MODE GAME OVER -->
+<div id="speedGameOver" style="display:none;">
+    <div class="game-over-container">
+        <h2 id="speedGameOverTitle"></h2>
+        <p id="speedGameOverMessage"></p>
+        <p id="speedFinalTime" class="final-time"></p>
+        <div class="game-over-buttons">
+            <button id="speedRestart" class="new-game-btn">Try Again</button>
+            <button id="speedGameOverHome" class="new-game-btn">Home</button>
+        </div>
+    </div>
+</div>
+
+<!-- SPEED LEADERBOARD -->
+<div id="speedLeaderboard" style="display:none;">
+    <div class="leaderboard-container">
+        <h2>Speed Mode Leaderboard</h2>
+        <button id="leaderboardBack" class="home-btn-top">Back</button>
+        <div id="leaderboardList" class="leaderboard-list">
+            <!-- Leaderboard entries will be populated here -->
         </div>
     </div>
 </div>

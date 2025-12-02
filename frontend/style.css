@@ -475,6 +475,119 @@ input[type="text"]:focus {
     padding-bottom: 195px;
 }
 
+/* LOGIN PAGE */
+#loginPage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+}
+
+.login-container {
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.login-container h1 {
+    margin-bottom: 30px;
+    color: #fff;
+}
+
+.login-container h2 {
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    font-size: 16px;
+    background: #222;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.login-container input:focus {
+    outline: none;
+    border-color: #777;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    margin: 15px 0 10px 0;
+    font-size: 18px;
+    font-weight: bold;
+    background: #0f0;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.login-btn:hover {
+    background: #0a0;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.link-btn:hover {
+    color: #fff;
+}
+
+.error-message {
+    color: #ff4444;
+    margin-top: 10px;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+/* USER INFO ON HOME PAGE */
+.user-info {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+#loggedInUser {
+    color: #0f0;
+    font-weight: bold;
+}
+
+.logout-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: #cc0000;
+}
+
 /* SONG RESULT MODAL */
 .modal-overlay {
     position: fixed;

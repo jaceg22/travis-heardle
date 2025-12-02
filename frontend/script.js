@@ -5,6 +5,154 @@ const SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/objec
 const SUPABASE_COVERS_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/album";
 const BACKEND_URL = "https://travis-heardle.onrender.com";
 
+// ---------------------------
+// USER AUTHENTICATION STATE
+// ---------------------------
+let currentUser = null;
+
+// Check if user is logged in from localStorage
+function initAuth() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showHomePage();
+    } else {
+        showLoginPage();
+    }
+}
+
+function showLoginPage() {
+    document.getElementById("loginPage").style.display = "block";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("soloGame").style.display = "none";
+    document.getElementById("h2hMenu").style.display = "none";
+    document.getElementById("h2hGame").style.display = "none";
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedLeaderboard").style.display = "none";
+}
+
+function showHomePage() {
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("home").style.display = "block";
+    document.getElementById("soloGame").style.display = "none";
+    document.getElementById("h2hMenu").style.display = "none";
+    document.getElementById("h2hGame").style.display = "none";
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedLeaderboard").style.display = "none";
+    if (currentUser) {
+        document.getElementById("loggedInUser").textContent = `Logged in as: ${currentUser.username}`;
+    }
+}
+
+// ---------------------------
+// LOGIN/REGISTER HANDLERS
+// ---------------------------
+document.getElementById("showRegisterBtn").onclick = () => {
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("registerForm").style.display = "block";
+    document.getElementById("loginError").textContent = "";
+};
+
+document.getElementById("showLoginBtn").onclick = () => {
+    document.getElementById("registerForm").style.display = "none";
+    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("registerError").textContent = "";
+};
+
+document.getElementById("registerBtn").onclick = async () => {
+    const username = document.getElementById("registerUsername").value.trim();
+    const password = document.getElementById("registerPassword").value;
+    const confirmPassword = document.getElementById("registerConfirmPassword").value;
+    const errorDiv = document.getElementById("registerError");
+    
+    errorDiv.textContent = "";
+    
+    if (!username || !password) {
+        errorDiv.textContent = "Please fill in all fields";
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        errorDiv.textContent = "Passwords do not match";
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            errorDiv.textContent = data.error || "Registration failed";
+            return;
+        }
+        
+        // Registration successful, auto-login
+        currentUser = data.user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showHomePage();
+    } catch (error) {
+        errorDiv.textContent = "Registration failed. Please try again.";
+        console.error("Registration error:", error);
+    }
+};
+
+document.getElementById("loginBtn").onclick = async () => {
+    const username = document.getElementById("loginUsername").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const errorDiv = document.getElementById("loginError");
+    
+    errorDiv.textContent = "";
+    
+    if (!username || !password) {
+        errorDiv.textContent = "Please fill in all fields";
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            errorDiv.textContent = data.error || "Login failed";
+            return;
+        }
+        
+        // Login successful
+        currentUser = data.user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showHomePage();
+    } catch (error) {
+        errorDiv.textContent = "Login failed. Please try again.";
+        console.error("Login error:", error);
+    }
+};
+
+document.getElementById("logoutBtn").onclick = () => {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    showLoginPage();
+};
+
+// Initialize auth when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+    // DOM already loaded
+    initAuth();
+}
+
 // Album cover mapping: song name -> album cover filename
 // Images should be in Supabase Storage at: /album/{filename}
 const ALBUM_COVERS = {
@@ -262,6 +410,10 @@ const h2hGame = document.getElementById("h2hGame");
 // MODE SELECTION
 // ---------------------------
 document.getElementById("soloRegularBtn").onclick = () => {
+    if (!currentUser) {
+        alert("Please log in to play");
+        return;
+    }
     currentMode = 'solo';
     gameMode = 'regular';
     home.style.display = "none";
@@ -270,6 +422,10 @@ document.getElementById("soloRegularBtn").onclick = () => {
 };
 
 document.getElementById("soloRandomBtn").onclick = () => {
+    if (!currentUser) {
+        alert("Please log in to play");
+        return;
+    }
     currentMode = 'solo';
     gameMode = 'random';
     home.style.display = "none";
@@ -278,6 +434,10 @@ document.getElementById("soloRandomBtn").onclick = () => {
 };
 
 document.getElementById("h2hRegularBtn").onclick = () => {
+    if (!currentUser) {
+        alert("Please log in to play");
+        return;
+    }
     currentMode = 'h2h';
     gameMode = 'regular';
     home.style.display = "none";
@@ -285,10 +445,25 @@ document.getElementById("h2hRegularBtn").onclick = () => {
 };
 
 document.getElementById("h2hRandomBtn").onclick = () => {
+    if (!currentUser) {
+        alert("Please log in to play");
+        return;
+    }
     currentMode = 'h2h';
     gameMode = 'random';
     home.style.display = "none";
     h2hMenu.style.display = "block";
+};
+
+document.getElementById("speedBtn").onclick = () => {
+    if (!currentUser) {
+        alert("Please log in to play");
+        return;
+    }
+    currentMode = 'speed';
+    home.style.display = "none";
+    speedGame.style.display = "block";
+    startSpeedGame();
 };
 
 document.getElementById("h2hMenuHome").onclick = () => {
