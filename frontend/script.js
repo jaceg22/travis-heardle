@@ -13,8 +13,20 @@ let currentUser = null;
 // Check if user is logged in from localStorage
 function initAuth() {
     const savedUser = localStorage.getItem('currentUser');
+    const skipLogin = localStorage.getItem('skipLogin');
+    
     if (savedUser) {
-        currentUser = JSON.parse(savedUser);
+        try {
+            currentUser = JSON.parse(savedUser);
+            localStorage.removeItem('skipLogin'); // Clear skip flag if user logs in
+            showHomePage();
+        } catch (e) {
+            localStorage.removeItem('currentUser');
+            showLoginPage();
+        }
+    } else if (skipLogin === 'true') {
+        // User previously skipped login
+        currentUser = null;
         showHomePage();
     } else {
         showLoginPage();
@@ -43,6 +55,16 @@ function showHomePage() {
     document.getElementById("speedLeaderboard").style.display = "none";
     if (currentUser) {
         document.getElementById("loggedInUser").textContent = `Logged in as: ${currentUser.username}`;
+        document.getElementById("logoutBtn").style.display = "block";
+    } else {
+        const skipLogin = localStorage.getItem('skipLogin');
+        if (skipLogin === 'true') {
+            document.getElementById("loggedInUser").textContent = "Playing without account (stats not recorded)";
+            document.getElementById("logoutBtn").style.display = "none";
+        } else {
+            document.getElementById("loggedInUser").textContent = "";
+            document.getElementById("logoutBtn").style.display = "none";
+        }
     }
 }
 
@@ -142,7 +164,15 @@ document.getElementById("loginBtn").onclick = async () => {
 document.getElementById("logoutBtn").onclick = () => {
     currentUser = null;
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('skipLogin');
     showLoginPage();
+};
+
+document.getElementById("skipLoginBtn").onclick = () => {
+    // Skip login - allow play without recording stats
+    currentUser = null;
+    localStorage.setItem('skipLogin', 'true');
+    showHomePage();
 };
 
 // Initialize auth when DOM is ready
@@ -428,10 +458,6 @@ const h2hGame = document.getElementById("h2hGame");
 // MODE SELECTION
 // ---------------------------
 document.getElementById("soloRegularBtn").onclick = () => {
-    if (!currentUser) {
-        alert("Please log in to play");
-        return;
-    }
     currentMode = 'solo';
     gameMode = 'regular';
     home.style.display = "none";
@@ -440,10 +466,6 @@ document.getElementById("soloRegularBtn").onclick = () => {
 };
 
 document.getElementById("soloRandomBtn").onclick = () => {
-    if (!currentUser) {
-        alert("Please log in to play");
-        return;
-    }
     currentMode = 'solo';
     gameMode = 'random';
     home.style.display = "none";
@@ -452,10 +474,6 @@ document.getElementById("soloRandomBtn").onclick = () => {
 };
 
 document.getElementById("h2hRegularBtn").onclick = () => {
-    if (!currentUser) {
-        alert("Please log in to play");
-        return;
-    }
     currentMode = 'h2h';
     gameMode = 'regular';
     home.style.display = "none";
@@ -463,10 +481,6 @@ document.getElementById("h2hRegularBtn").onclick = () => {
 };
 
 document.getElementById("h2hRandomBtn").onclick = () => {
-    if (!currentUser) {
-        alert("Please log in to play");
-        return;
-    }
     currentMode = 'h2h';
     gameMode = 'random';
     home.style.display = "none";
@@ -474,10 +488,6 @@ document.getElementById("h2hRandomBtn").onclick = () => {
 };
 
 document.getElementById("speedBtn").onclick = () => {
-    if (!currentUser) {
-        alert("Please log in to play");
-        return;
-    }
     currentMode = 'speed';
     home.style.display = "none";
     speedGame.style.display = "block";
@@ -1088,18 +1098,14 @@ async function saveSpeedRun(totalTime, roundsCompleted) {
 document.getElementById("speedPlay").onclick = () => {
     if (!speedState.currentSong || speedState.gameOver) return;
     
+    // Always reset audio and play from start - button always says "Play"
     if (speedState.audio) {
-        if (!speedState.audio.paused) {
-            speedState.audio.pause();
-            document.getElementById("speedPlay").textContent = "Play";
-            if (speedState.progressInterval) {
-                clearInterval(speedState.progressInterval);
-            }
-            return;
-        } else {
-            speedState.audio.pause();
-            speedState.audio = null;
-        }
+        speedState.audio.pause();
+        speedState.audio = null;
+    }
+    
+    if (speedState.progressInterval) {
+        clearInterval(speedState.progressInterval);
     }
     
     const duration = DURATIONS[Math.min(speedState.skips, 5)];
@@ -1113,7 +1119,8 @@ document.getElementById("speedPlay").onclick = () => {
         document.getElementById("speedFeedback").textContent = "Error loading audio. Try again.";
     });
     
-    document.getElementById("speedPlay").textContent = "Pause";
+    // Button always says "Play" - don't change text
+    document.getElementById("speedPlay").textContent = "Play";
     
     const startProgress = speedState.startTime;
     
@@ -1317,15 +1324,38 @@ async function loadLeaderboard(mode) {
                     </div>
                 `;
             } else {
-                html += `
-                    <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
-                        <span class="leaderboard-rank">${index + 1}</span>
-                        <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
-                        <span class="leaderboard-wins">Wins: ${entry.wins || 0}</span>
-                        <span class="leaderboard-losses">Losses: ${entry.losses || 0}</span>
-                        <span class="leaderboard-winrate">${entry.winRate || '0.0'}%</span>
-                    </div>
-                `;
+                const isSoloMode = mode.startsWith('solo-');
+                if (isSoloMode && entry.strikeStats) {
+                    // Solo mode with detailed strike stats
+                    html += `
+                        <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
+                            <span class="leaderboard-rank">${index + 1}</span>
+                            <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
+                            <span class="leaderboard-wins">Wins: ${entry.wins || 0}</span>
+                            <span class="leaderboard-losses">Losses: ${entry.losses || 0}</span>
+                            <span class="leaderboard-winrate">${entry.winRate || '0.0'}%</span>
+                        </div>
+                        <div class="leaderboard-strike-stats">
+                            <span class="strike-stat">1 try: ${entry.strikeStats[0] || 0}</span>
+                            <span class="strike-stat">2 tries: ${entry.strikeStats[1] || 0}</span>
+                            <span class="strike-stat">3 tries: ${entry.strikeStats[2] || 0}</span>
+                            <span class="strike-stat">4 tries: ${entry.strikeStats[3] || 0}</span>
+                            <span class="strike-stat">5 tries: ${entry.strikeStats[4] || 0}</span>
+                            <span class="strike-stat">6 tries: ${entry.strikeStats[5] || 0}</span>
+                        </div>
+                    `;
+                } else {
+                    // H2H mode or solo without strike stats
+                    html += `
+                        <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
+                            <span class="leaderboard-rank">${index + 1}</span>
+                            <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
+                            <span class="leaderboard-wins">Wins: ${entry.wins || 0}</span>
+                            <span class="leaderboard-losses">Losses: ${entry.losses || 0}</span>
+                            <span class="leaderboard-winrate">${entry.winRate || '0.0'}%</span>
+                        </div>
+                    `;
+                }
             }
         });
         html += '</div>';

@@ -361,6 +361,7 @@ app.post("/api/speed-leaderboard", async (req, res) => {
 app.get("/api/leaderboard/:mode", async (req, res) => {
     try {
         const { mode } = req.params;
+        const isSoloMode = mode.startsWith('solo-');
         
         // Get stats for this mode with user info
         const { data: stats, error: statsError } = await supabase
@@ -392,7 +393,7 @@ app.get("/api/leaderboard/:mode", async (req, res) => {
         });
         
         // Format the leaderboard
-        const leaderboard = stats.map(item => {
+        let leaderboard = stats.map(item => {
             const total = item.wins + item.losses;
             const winRate = total > 0 ? ((item.wins / total) * 100).toFixed(1) : '0.0';
             return {
@@ -402,6 +403,54 @@ app.get("/api/leaderboard/:mode", async (req, res) => {
                 winRate: winRate
             };
         });
+        
+        // For solo modes, get detailed strike statistics
+        if (isSoloMode) {
+            // Create a map of username to user_id
+            const usernameToUserId = {};
+            stats.forEach(stat => {
+                usernameToUserId[userMap[stat.user_id]] = stat.user_id;
+            });
+            
+            // Get game history for wins only (strikes used)
+            const userIdsList = stats.map(s => s.user_id);
+            const { data: gameHistory, error: historyError } = await supabase
+                .from('game_history')
+                .select('user_id, strikes')
+                .eq('mode', mode)
+                .eq('won', true)
+                .in('user_id', userIdsList);
+            
+            if (!historyError && gameHistory) {
+                // Count strikes for each user
+                const strikeCounts = {};
+                gameHistory.forEach(entry => {
+                    if (!strikeCounts[entry.user_id]) {
+                        strikeCounts[entry.user_id] = {
+                            0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0
+                        };
+                    }
+                    const strikes = Math.min(entry.strikes, 6);
+                    strikeCounts[entry.user_id][strikes] = (strikeCounts[entry.user_id][strikes] || 0) + 1;
+                });
+                
+                // Add strike stats to leaderboard by matching user_id
+                leaderboard = leaderboard.map(item => {
+                    const userId = usernameToUserId[item.username];
+                    const userStrikes = strikeCounts[userId] || { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+                    return {
+                        ...item,
+                        strikeStats: userStrikes
+                    };
+                });
+            } else {
+                // No game history found, initialize empty strike stats
+                leaderboard = leaderboard.map(item => ({
+                    ...item,
+                    strikeStats: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
+                }));
+            }
+        }
         
         res.json({ leaderboard });
     } catch (error) {

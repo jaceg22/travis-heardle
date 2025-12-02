@@ -682,6 +682,26 @@ input[type="text"]:focus {
     color: #fff;
 }
 
+.skip-login-btn {
+    width: 100%;
+    padding: 12px;
+    margin: 15px 0 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    background: #333;
+    color: #aaa;
+    border: 2px solid #555;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.skip-login-btn:hover {
+    background: #444;
+    color: #fff;
+    border-color: #777;
+}
+
 .error-message {
     color: #ff4444;
     margin-top: 10px;
@@ -876,6 +896,27 @@ input[type="text"]:focus {
     font-weight: bold;
     min-width: 100px;
     text-align: right;
+}
+
+.leaderboard-strike-stats {
+    display: flex;
+    gap: 15px;
+    padding: 10px 20px;
+    background: #1a1a1a;
+    border-left: 3px solid #444;
+    margin-left: 40px;
+    margin-bottom: 5px;
+    font-size: 13px;
+    flex-wrap: wrap;
+}
+
+.strike-stat {
+    color: #aaa;
+}
+
+.strike-stat:first-child {
+    color: #0f0;
+    font-weight: bold;
 }
 
 /* SONG RESULT MODAL */
