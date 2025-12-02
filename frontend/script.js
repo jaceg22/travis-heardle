@@ -398,6 +398,24 @@ let h2hState = {
     gameMode: 'regular'
 };
 
+let speedState = {
+    currentSong: null,
+    skips: 0,
+    startTime: 0,
+    audio: null,
+    guessed: false,
+    strikes: 0,
+    progressBars: [],
+    songDuration: 0,
+    progressInterval: null,
+    round: 1,
+    totalRounds: 15,
+    timer: 0,
+    timerInterval: null,
+    gameOver: false,
+    songsPlayed: [] // Track songs to avoid repeats
+};
+
 // ---------------------------
 // DOM ELEMENTS
 // ---------------------------
@@ -813,6 +831,413 @@ document.getElementById("soloNewGame").onclick = () => {
 
 // Autocomplete for Solo
 setupAutocomplete("soloGuessInput", "soloAutocomplete");
+
+// ---------------------------
+// SPEED MODE
+// ---------------------------
+async function startSpeedGame() {
+    // Reset state for new game
+    speedState = {
+        currentSong: null,
+        skips: 0,
+        startTime: 0,
+        audio: null,
+        guessed: false,
+        strikes: 0,
+        progressBars: [],
+        songDuration: 0,
+        progressInterval: null,
+        round: 1,
+        totalRounds: 15,
+        timer: 0,
+        timerInterval: null,
+        gameOver: false,
+        songsPlayed: []
+    };
+    
+    // Reset UI
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`speedBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    document.getElementById("speedStrikes").textContent = "0/6 strikes";
+    document.getElementById("speedRound").textContent = `Round ${speedState.round}/${speedState.totalRounds}`;
+    document.getElementById("speedTimer").textContent = "0:00";
+    document.getElementById("speedFeedback").textContent = "";
+    document.getElementById("speedFeedback").className = "feedback";
+    document.getElementById("speedGuessInput").value = "";
+    
+    // Start timer
+    startSpeedTimer();
+    
+    // Start first round
+    await startSpeedRound();
+}
+
+async function startSpeedRound() {
+    // Select a random song that hasn't been played yet
+    let availableSongs = SONGS.filter(s => !speedState.songsPlayed.includes(s));
+    if (availableSongs.length === 0) {
+        // Reset if all songs used
+        speedState.songsPlayed = [];
+        availableSongs = SONGS;
+    }
+    
+    const songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
+    speedState.songsPlayed.push(songName);
+    
+    speedState.currentSong = songName;
+    speedState.skips = 0;
+    speedState.strikes = 0;
+    speedState.guessed = false;
+    speedState.startTime = 0;
+    speedState.gameOver = false;
+    
+    // Reset progress bars for this round
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`speedBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    document.getElementById("speedStrikes").textContent = "0/6 strikes";
+    document.getElementById("speedRound").textContent = `Round ${speedState.round}/${speedState.totalRounds}`;
+    document.getElementById("speedFeedback").textContent = "";
+    document.getElementById("speedFeedback").className = "feedback";
+    document.getElementById("speedGuessInput").value = "";
+    
+    // Enable controls
+    document.getElementById("speedPlay").disabled = false;
+    document.getElementById("speedSkip").disabled = false;
+    document.getElementById("speedGuess").disabled = false;
+    document.getElementById("speedGuessInput").disabled = false;
+    
+    speedState.songDuration = await getSongDuration(songName);
+}
+
+function startSpeedTimer() {
+    if (speedState.timerInterval) {
+        clearInterval(speedState.timerInterval);
+    }
+    
+    speedState.timerInterval = setInterval(() => {
+        if (!speedState.gameOver) {
+            speedState.timer += 0.1;
+            const minutes = Math.floor(speedState.timer / 60);
+            const seconds = Math.floor(speedState.timer % 60);
+            const milliseconds = Math.floor((speedState.timer % 1) * 10);
+            document.getElementById("speedTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds}`;
+        }
+    }, 100);
+}
+
+function addSpeedPenalty() {
+    speedState.timer += 3;
+}
+
+function endSpeedGame(won) {
+    speedState.gameOver = true;
+    if (speedState.timerInterval) {
+        clearInterval(speedState.timerInterval);
+    }
+    
+    // Disable controls
+    document.getElementById("speedPlay").disabled = true;
+    document.getElementById("speedSkip").disabled = true;
+    document.getElementById("speedGuess").disabled = true;
+    document.getElementById("speedGuessInput").disabled = true;
+    
+    if (speedState.audio) {
+        speedState.audio.pause();
+    }
+    
+    if (speedState.progressInterval) {
+        clearInterval(speedState.progressInterval);
+    }
+    
+    if (won && speedState.round === speedState.totalRounds) {
+        // Completed all rounds - show success
+        const minutes = Math.floor(speedState.timer / 60);
+        const seconds = Math.floor(speedState.timer % 60);
+        const milliseconds = Math.floor((speedState.timer % 1) * 100);
+        
+        document.getElementById("speedGame").style.display = "none";
+        document.getElementById("speedGameOver").style.display = "block";
+        document.getElementById("speedGameOverTitle").textContent = "Congratulations!";
+        document.getElementById("speedGameOverMessage").textContent = `You completed all ${speedState.totalRounds} rounds!`;
+        document.getElementById("speedFinalTime").textContent = `Final Time: ${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+        
+        // Save to leaderboard if completed all rounds
+        if (currentUser && speedState.round === speedState.totalRounds) {
+            saveSpeedRun(speedState.timer, speedState.round);
+        }
+    } else {
+        // Lost - show game over
+        document.getElementById("speedGame").style.display = "none";
+        document.getElementById("speedGameOver").style.display = "block";
+        document.getElementById("speedGameOverTitle").textContent = "Game Over!";
+        document.getElementById("speedGameOverMessage").textContent = `You completed ${speedState.round - 1} rounds. The song was: ${speedState.currentSong}`;
+        document.getElementById("speedFinalTime").textContent = "";
+    }
+}
+
+async function saveSpeedRun(totalTime, roundsCompleted) {
+    if (!currentUser) return;
+    
+    try {
+        await fetch(`${BACKEND_URL}/api/speed-leaderboard`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: currentUser.id,
+                username: currentUser.username,
+                total_time: totalTime,
+                rounds_completed: roundsCompleted
+            })
+        });
+    } catch (error) {
+        console.error("Failed to save speed run:", error);
+    }
+}
+
+// Speed mode button handlers
+document.getElementById("speedPlay").onclick = () => {
+    if (!speedState.currentSong || speedState.gameOver) return;
+    
+    if (speedState.audio) {
+        if (!speedState.audio.paused) {
+            speedState.audio.pause();
+            document.getElementById("speedPlay").textContent = "Play";
+            if (speedState.progressInterval) {
+                clearInterval(speedState.progressInterval);
+            }
+            return;
+        } else {
+            speedState.audio.pause();
+            speedState.audio = null;
+        }
+    }
+    
+    const duration = DURATIONS[Math.min(speedState.skips, 5)];
+    const url = `${SUPABASE_BASE}/${encodeURIComponent(speedState.currentSong)}.mp3`;
+    
+    speedState.audio = new Audio(url);
+    speedState.audio.currentTime = speedState.startTime;
+    
+    speedState.audio.play().catch(err => {
+        console.error("Error playing audio:", err);
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Try again.";
+    });
+    
+    document.getElementById("speedPlay").textContent = "Pause";
+    
+    const startProgress = speedState.startTime;
+    
+    speedState.progressInterval = setInterval(() => {
+        if (speedState.audio && !speedState.audio.paused) {
+            const current = speedState.audio.currentTime;
+            const total = speedState.songDuration || 180;
+            const overallProgress = (current / total) * 100;
+            document.getElementById("speedSongProgressFill").style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+        }
+    }, 50);
+    
+    setTimeout(() => {
+        if (speedState.audio) {
+            speedState.audio.pause();
+        }
+        if (speedState.progressInterval) {
+            clearInterval(speedState.progressInterval);
+        }
+    }, duration * 1000);
+};
+
+document.getElementById("speedSkip").onclick = () => {
+    if (speedState.gameOver || speedState.guessed || speedState.strikes >= 6) return;
+    
+    if (speedState.audio) {
+        speedState.audio.pause();
+    }
+    
+    speedState.skips++;
+    speedState.strikes++;
+    addSpeedPenalty(); // 3 second penalty
+    
+    const strikeIndex = speedState.strikes - 1;
+    updateProgressBar('speed', strikeIndex, 'skip', 'Skipped');
+    document.getElementById("speedStrikes").textContent = `${speedState.strikes}/6 strikes`;
+    
+    if (speedState.strikes >= 6) {
+        endSpeedGame(false);
+        return;
+    }
+    
+    if (speedState.progressInterval) {
+        clearInterval(speedState.progressInterval);
+    }
+};
+
+document.getElementById("speedGuess").onclick = () => {
+    if (speedState.gameOver || speedState.guessed || speedState.strikes >= 6) return;
+    
+    const guess = document.getElementById("speedGuessInput").value.trim();
+    if (!guess) return;
+    
+    let matchedSong = null;
+    for (const song of SONGS) {
+        if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
+            matchedSong = song;
+            break;
+        }
+    }
+    
+    if (!matchedSong) {
+        speedState.strikes++;
+        addSpeedPenalty(); // 3 second penalty
+        document.getElementById("speedStrikes").textContent = `${speedState.strikes}/6 strikes`;
+        const strikeIndex = speedState.strikes - 1;
+        updateProgressBar('speed', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
+        document.getElementById("speedFeedback").textContent = `"${guess}": Song not found. Try Again.`;
+        document.getElementById("speedFeedback").className = "feedback not-found";
+        document.getElementById("speedGuessInput").value = "";
+        
+        if (speedState.strikes >= 6) {
+            endSpeedGame(false);
+        }
+        hideAutocomplete("speed");
+        return;
+    }
+    
+    if (matchedSong.toLowerCase() === speedState.currentSong.toLowerCase()) {
+        // Correct guess
+        speedState.guessed = true;
+        const strikeIndex = speedState.strikes;
+        updateProgressBar('speed', strikeIndex, 'correct', 'Guessed Correct!');
+        document.getElementById("speedStrikes").textContent = `${speedState.strikes}/6 strikes`;
+        document.getElementById("speedFeedback").textContent = `Correct!`;
+        document.getElementById("speedFeedback").className = "feedback correct";
+        
+        if (speedState.audio) {
+            speedState.audio.pause();
+        }
+        
+        if (speedState.progressInterval) {
+            clearInterval(speedState.progressInterval);
+        }
+        
+        // Auto-start next round after short delay
+        setTimeout(async () => {
+            speedState.round++;
+            if (speedState.round > speedState.totalRounds) {
+                endSpeedGame(true);
+            } else {
+                await startSpeedRound();
+            }
+        }, 1500);
+    } else {
+        // Incorrect guess
+        speedState.strikes++;
+        addSpeedPenalty(); // 3 second penalty
+        const strikeIndex = speedState.strikes - 1;
+        updateProgressBar('speed', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
+        document.getElementById("speedStrikes").textContent = `${speedState.strikes}/6 strikes`;
+        document.getElementById("speedFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
+        document.getElementById("speedFeedback").className = "feedback incorrect";
+        document.getElementById("speedGuessInput").value = "";
+        
+        if (speedState.strikes >= 6) {
+            endSpeedGame(false);
+        }
+    }
+    
+    hideAutocomplete("speed");
+};
+
+document.getElementById("speedHome").onclick = () => {
+    if (speedState.audio) {
+        speedState.audio.pause();
+    }
+    if (speedState.timerInterval) {
+        clearInterval(speedState.timerInterval);
+    }
+    if (speedState.progressInterval) {
+        clearInterval(speedState.progressInterval);
+    }
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    home.style.display = "block";
+    currentMode = null;
+};
+
+document.getElementById("speedRestart").onclick = () => {
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedGame").style.display = "block";
+    startSpeedGame();
+};
+
+document.getElementById("speedGameOverHome").onclick = () => {
+    document.getElementById("speedGameOver").style.display = "none";
+    home.style.display = "block";
+    currentMode = null;
+};
+
+// Setup autocomplete for Speed mode
+setupAutocomplete("speedGuessInput", "speedAutocomplete");
+
+// Leaderboard functionality
+async function loadSpeedLeaderboard() {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/speed-leaderboard`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error("Failed to load leaderboard");
+            return;
+        }
+        
+        const leaderboardList = document.getElementById("leaderboardList");
+        leaderboardList.innerHTML = "";
+        
+        if (!data.leaderboard || data.leaderboard.length === 0) {
+            leaderboardList.innerHTML = "<p style='text-align: center; color: #999;'>No entries yet. Be the first!</p>";
+            return;
+        }
+        
+        data.leaderboard.forEach((entry, index) => {
+            const entryDiv = document.createElement("div");
+            entryDiv.className = `leaderboard-entry ${index < 3 ? 'rank-' + (index + 1) : ''}`;
+            
+            const minutes = Math.floor(entry.total_time / 60);
+            const seconds = Math.floor(entry.total_time % 60);
+            const milliseconds = Math.floor((entry.total_time % 1) * 100);
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+            
+            entryDiv.innerHTML = `
+                <span class="leaderboard-rank">${index + 1}</span>
+                <span class="leaderboard-username">${entry.username}</span>
+                <span class="leaderboard-time">${timeString}</span>
+            `;
+            
+            leaderboardList.appendChild(entryDiv);
+        });
+    } catch (error) {
+        console.error("Error loading leaderboard:", error);
+    }
+}
+
+document.getElementById("leaderboardBack").onclick = () => {
+    document.getElementById("speedLeaderboard").style.display = "none";
+    home.style.display = "block";
+};
+
+// Add leaderboard button to home page (optional - you can add this later)
+// For now, leaderboard can be accessed after completing Speed mode
 
 // ---------------------------
 // H2H MODE - LOBBY
