@@ -2,6 +2,13 @@ import express from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcrypt';
+
+// Supabase configuration
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://ggkanqgcvvxtpdhzmoon.supabase.co";
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "YOUR_SUPABASE_ANON_KEY_HERE";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---------------------------
 // SONG LIST (same as your python)
@@ -92,7 +99,246 @@ const DURATIONS = [1, 2.5, 4.5, 8, 16, 30];
 // ---------------------------
 const app = express();
 app.use(cors());
+app.use(express.json());
 const httpServer = createServer(app);
+
+// ---------------------------
+// AUTHENTICATION ENDPOINTS
+// ---------------------------
+app.post("/api/register", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: "Username and password required" });
+        }
+        
+        if (username.length < 3 || username.length > 50) {
+            return res.status(400).json({ error: "Username must be 3-50 characters" });
+        }
+        
+        if (password.length < 6) {
+            return res.status(400).json({ error: "Password must be at least 6 characters" });
+        }
+        
+        // Check if username already exists
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('username')
+            .eq('username', username)
+            .single();
+        
+        if (existingUser) {
+            return res.status(400).json({ error: "Username already taken" });
+        }
+        
+        // Hash password
+        const password_hash = await bcrypt.hash(password, 10);
+        
+        // Create user
+        const { data: user, error } = await supabase
+            .from('users')
+            .insert([{ username, password_hash }])
+            .select('id, username')
+            .single();
+        
+        if (error) {
+            console.error("Registration error:", error);
+            return res.status(500).json({ error: "Registration failed" });
+        }
+        
+        res.json({ success: true, user: { id: user.id, username: user.username } });
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ error: "Registration failed" });
+    }
+});
+
+app.post("/api/login", async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: "Username and password required" });
+        }
+        
+        // Get user
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('id, username, password_hash')
+            .eq('username', username)
+            .single();
+        
+        if (error || !user) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+        
+        // Verify password
+        const valid = await bcrypt.compare(password, user.password_hash);
+        
+        if (!valid) {
+            return res.status(401).json({ error: "Invalid username or password" });
+        }
+        
+        res.json({ 
+            success: true, 
+            user: { id: user.id, username: user.username } 
+        });
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ error: "Login failed" });
+    }
+});
+
+// ---------------------------
+// STATS ENDPOINTS
+// ---------------------------
+app.post("/api/stats", async (req, res) => {
+    try {
+        const { user_id, mode, won } = req.body;
+        
+        if (!user_id || !mode || typeof won !== 'boolean') {
+            return res.status(400).json({ error: "Invalid request" });
+        }
+        
+        // Get current stats
+        const { data: existing } = await supabase
+            .from('stats')
+            .select('*')
+            .eq('user_id', user_id)
+            .eq('mode', mode)
+            .single();
+        
+        if (existing) {
+            // Update existing stats
+            const updates = won 
+                ? { wins: existing.wins + 1, updated_at: new Date().toISOString() }
+                : { losses: existing.losses + 1, updated_at: new Date().toISOString() };
+            
+            const { error } = await supabase
+                .from('stats')
+                .update(updates)
+                .eq('id', existing.id);
+            
+            if (error) throw error;
+        } else {
+            // Create new stats entry
+            const newStats = {
+                user_id,
+                mode,
+                wins: won ? 1 : 0,
+                losses: won ? 0 : 1
+            };
+            
+            const { error } = await supabase
+                .from('stats')
+                .insert([newStats]);
+            
+            if (error) throw error;
+        }
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Stats error:", error);
+        res.status(500).json({ error: "Failed to update stats" });
+    }
+});
+
+app.post("/api/game-history", async (req, res) => {
+    try {
+        const { user_id, mode, song_name, strikes, won, duration } = req.body;
+        
+        if (!user_id || !mode || !song_name || typeof strikes !== 'number') {
+            return res.status(400).json({ error: "Invalid request" });
+        }
+        
+        const { error } = await supabase
+            .from('game_history')
+            .insert([{
+                user_id,
+                mode,
+                song_name,
+                strikes,
+                won: won || false,
+                duration: duration || null
+            }]);
+        
+        if (error) throw error;
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Game history error:", error);
+        res.status(500).json({ error: "Failed to save game history" });
+    }
+});
+
+app.get("/api/stats/:user_id", async (req, res) => {
+    try {
+        const { user_id } = req.params;
+        
+        const { data, error } = await supabase
+            .from('stats')
+            .select('*')
+            .eq('user_id', user_id);
+        
+        if (error) throw error;
+        
+        res.json({ stats: data || [] });
+    } catch (error) {
+        console.error("Get stats error:", error);
+        res.status(500).json({ error: "Failed to get stats" });
+    }
+});
+
+// ---------------------------
+// SPEED LEADERBOARD ENDPOINTS
+// ---------------------------
+app.get("/api/speed-leaderboard", async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('speed_leaderboard')
+            .select('username, total_time, rounds_completed, created_at')
+            .eq('rounds_completed', 15)
+            .order('total_time', { ascending: true })
+            .limit(10);
+        
+        if (error) throw error;
+        
+        res.json({ leaderboard: data || [] });
+    } catch (error) {
+        console.error("Leaderboard error:", error);
+        res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+});
+
+app.post("/api/speed-leaderboard", async (req, res) => {
+    try {
+        const { user_id, username, total_time, rounds_completed } = req.body;
+        
+        if (!user_id || !username || !total_time || !rounds_completed) {
+            return res.status(400).json({ error: "Invalid request" });
+        }
+        
+        // Only save if completed all 15 rounds
+        if (rounds_completed === 15) {
+            const { error } = await supabase
+                .from('speed_leaderboard')
+                .insert([{
+                    user_id,
+                    username,
+                    total_time,
+                    rounds_completed
+                }]);
+            
+            if (error) throw error;
+        }
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Leaderboard save error:", error);
+        res.status(500).json({ error: "Failed to save leaderboard entry" });
+    }
+});
 
 const io = new Server(httpServer, {
   cors: { origin: "*" },
@@ -490,7 +736,7 @@ function checkRoundEnd(game, lobbyId) {
 // ---------------------------
 // START SERVER
 // ---------------------------
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
