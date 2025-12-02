@@ -991,7 +991,7 @@ function addSpeedPenalty() {
     speedState.timer += 3;
 }
 
-function endSpeedGame(won) {
+function endSpeedGame(won, completedRounds = null) {
     speedState.gameOver = true;
     if (speedState.timerInterval) {
         clearInterval(speedState.timerInterval);
@@ -1011,7 +1011,11 @@ function endSpeedGame(won) {
         clearInterval(speedState.progressInterval);
     }
     
-    if (won && speedState.round === speedState.totalRounds) {
+    // Use completedRounds if provided, otherwise calculate from current round
+    const roundsCompleted = completedRounds !== null ? completedRounds : (speedState.round - 1);
+    const allRoundsCompleted = roundsCompleted === speedState.totalRounds;
+    
+    if (won && allRoundsCompleted) {
         // Completed all rounds - show success
         const minutes = Math.floor(speedState.timer / 60);
         const seconds = Math.floor(speedState.timer % 60);
@@ -1024,8 +1028,13 @@ function endSpeedGame(won) {
         document.getElementById("speedFinalTime").textContent = `Final Time: ${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
         
         // Save to leaderboard if completed all rounds
-        if (currentUser && speedState.round === speedState.totalRounds) {
-            saveSpeedRun(speedState.timer, speedState.round);
+        if (currentUser && allRoundsCompleted) {
+            console.log("Saving speed run to leaderboard:", { 
+                timer: speedState.timer, 
+                rounds: roundsCompleted,
+                allRoundsCompleted 
+            });
+            saveSpeedRun(speedState.timer, roundsCompleted);
         }
     } else {
         // Lost - show game over
@@ -1038,10 +1047,20 @@ function endSpeedGame(won) {
 }
 
 async function saveSpeedRun(totalTime, roundsCompleted) {
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.error("Cannot save speed run: No current user");
+        return;
+    }
+    
+    console.log("Attempting to save speed run:", {
+        user_id: currentUser.id,
+        username: currentUser.username,
+        total_time: totalTime,
+        rounds_completed: roundsCompleted
+    });
     
     try {
-        await fetch(`${BACKEND_URL}/api/speed-leaderboard`, {
+        const response = await fetch(`${BACKEND_URL}/api/speed-leaderboard`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1051,8 +1070,17 @@ async function saveSpeedRun(totalTime, roundsCompleted) {
                 rounds_completed: roundsCompleted
             })
         });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error("Failed to save speed run:", data.error || "Unknown error");
+            return;
+        }
+        
+        console.log("Speed run saved successfully:", data);
     } catch (error) {
-        console.error("Failed to save speed run:", error);
+        console.error("Failed to save speed run (network error):", error);
     }
 }
 
@@ -1183,9 +1211,11 @@ document.getElementById("speedGuess").onclick = () => {
         
         // Auto-start next round after short delay
         setTimeout(async () => {
+            const completedRound = speedState.round; // Store current round before incrementing
             speedState.round++;
             if (speedState.round > speedState.totalRounds) {
-                endSpeedGame(true);
+                // Player just completed the final round (15), so completedRound is 15
+                endSpeedGame(true, completedRound);
             } else {
                 await startSpeedRound();
             }

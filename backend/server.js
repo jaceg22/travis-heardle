@@ -315,28 +315,45 @@ app.post("/api/speed-leaderboard", async (req, res) => {
     try {
         const { user_id, username, total_time, rounds_completed } = req.body;
         
-        if (!user_id || !username || !total_time || !rounds_completed) {
+        console.log("Speed leaderboard save request:", {
+            user_id,
+            username,
+            total_time,
+            rounds_completed
+        });
+        
+        if (!user_id || !username || !total_time || rounds_completed === undefined) {
+            console.error("Invalid request - missing required fields");
             return res.status(400).json({ error: "Invalid request" });
         }
         
         // Only save if completed all 15 rounds
         if (rounds_completed === 15) {
-            const { error } = await supabase
+            console.log("Saving to speed_leaderboard table...");
+            const { data, error } = await supabase
                 .from('speed_leaderboard')
                 .insert([{
                     user_id,
                     username,
                     total_time,
                     rounds_completed
-                }]);
+                }])
+                .select();
             
-            if (error) throw error;
+            if (error) {
+                console.error("Supabase insert error:", error);
+                throw error;
+            }
+            
+            console.log("Successfully saved to leaderboard:", data);
+            res.json({ success: true, saved: true });
+        } else {
+            console.log(`Not saving - only completed ${rounds_completed} rounds (need 15)`);
+            res.json({ success: true, saved: false, reason: `Only completed ${rounds_completed} rounds` });
         }
-        
-        res.json({ success: true });
     } catch (error) {
         console.error("Leaderboard save error:", error);
-        res.status(500).json({ error: "Failed to save leaderboard entry" });
+        res.status(500).json({ error: "Failed to save leaderboard entry", details: error.message });
     }
 });
 
@@ -481,8 +498,8 @@ io.on("connection", (socket) => {
     }
 
     if (!game.players[username]) {
-      game.players[username] = {
-        finished: false,
+    game.players[username] = {
+      finished: false,
         duration: null,
         timestamp: null,
         username: username,
@@ -530,7 +547,7 @@ io.on("connection", (socket) => {
       });
     } else if (game.started) {
       // If game already started, just send to the joining player
-      socket.emit("gameStart", {
+    socket.emit("gameStart", {
         song: game.song,
         startTime: game.startTime,
         scores: game.scores,
