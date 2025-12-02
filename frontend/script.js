@@ -566,6 +566,48 @@ async function startSoloGame() {
     }
 }
 
+// ---------------------------
+// STATS TRACKING HELPER FUNCTIONS
+// ---------------------------
+async function saveGameStats(mode, won) {
+    if (!currentUser) return;
+    
+    try {
+        await fetch(`${BACKEND_URL}/api/stats`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: currentUser.id,
+                mode: mode,
+                won: won
+            })
+        });
+    } catch (error) {
+        console.error("Failed to save stats:", error);
+    }
+}
+
+async function saveGameHistory(mode, songName, strikes, won, duration = null) {
+    if (!currentUser) return;
+    
+    try {
+        await fetch(`${BACKEND_URL}/api/game-history`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: currentUser.id,
+                mode: mode,
+                song_name: songName,
+                strikes: strikes,
+                won: won,
+                duration: duration
+            })
+        });
+    } catch (error) {
+        console.error("Failed to save game history:", error);
+    }
+}
+
 // Helper function to update progress bars
 function updateProgressBar(mode, index, type, text) {
     const prefix = mode === 'solo' ? 'solo' : 'h2h';
@@ -717,16 +759,20 @@ document.getElementById("soloSkip").onclick = () => {
     updateProgressBar('solo', strikeIndex, 'skip', 'Skipped');
     document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
     
-    if (soloState.strikes >= 6) {
-        document.getElementById("soloSkip").disabled = true;
-        document.getElementById("soloGuess").disabled = true;
-        document.getElementById("soloFeedback").textContent = `Out of strikes! The correct song was: ${soloState.currentSong}`;
-        document.getElementById("soloFeedback").className = "feedback incorrect";
-        if (soloState.audio) {
-            soloState.audio.pause();
-        }
-        // Show result modal
-        showSongResultModal(soloState.currentSong, `Incorrect! The song was: ${soloState.currentSong}`, false);
+        if (soloState.strikes >= 6) {
+            document.getElementById("soloSkip").disabled = true;
+            document.getElementById("soloGuess").disabled = true;
+            document.getElementById("soloFeedback").textContent = `Out of strikes! The correct song was: ${soloState.currentSong}`;
+            document.getElementById("soloFeedback").className = "feedback incorrect";
+            if (soloState.audio) {
+                soloState.audio.pause();
+            }
+            // Save stats and game history
+            const mode = `solo-${gameMode}`;
+            saveGameStats(mode, false);
+            saveGameHistory(mode, soloState.currentSong, soloState.strikes, false);
+            // Show result modal
+            showSongResultModal(soloState.currentSong, `Incorrect! The song was: ${soloState.currentSong}`, false);
         if (soloState.progressInterval) {
             clearInterval(soloState.progressInterval);
         }
@@ -792,6 +838,10 @@ document.getElementById("soloGuess").onclick = () => {
         if (soloState.audio) {
             soloState.audio.pause();
         }
+        // Save stats and game history
+        const mode = `solo-${gameMode}`;
+        saveGameStats(mode, true);
+        saveGameHistory(mode, soloState.currentSong, soloState.strikes, true);
         // Show result modal
         showSongResultModal(soloState.currentSong, `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`, true);
         if (soloState.progressInterval) {
@@ -1189,6 +1239,113 @@ document.getElementById("speedGameOverHome").onclick = () => {
 
 // Setup autocomplete for Speed mode
 setupAutocomplete("speedGuessInput", "speedAutocomplete");
+
+// ---------------------------
+// LEADERBOARD POPUP
+// ---------------------------
+let currentLeaderboardMode = 'solo-regular';
+
+async function loadLeaderboard(mode) {
+    const leaderboardContent = document.getElementById("leaderboardContent");
+    leaderboardContent.innerHTML = "<p style='text-align: center; color: #999;'>Loading...</p>";
+    
+    try {
+        let response;
+        if (mode === 'speed') {
+            response = await fetch(`${BACKEND_URL}/api/speed-leaderboard`);
+        } else {
+            response = await fetch(`${BACKEND_URL}/api/leaderboard/${mode}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            leaderboardContent.innerHTML = `<p style='text-align: center; color: #ff4444;'>Error loading leaderboard</p>`;
+            return;
+        }
+        
+        const leaderboard = data.leaderboard || [];
+        
+        if (leaderboard.length === 0) {
+            leaderboardContent.innerHTML = "<p style='text-align: center; color: #999; padding: 40px;'>No entries yet. Be the first!</p>";
+            return;
+        }
+        
+        // Create leaderboard HTML
+        let html = '<div class="leaderboard-table">';
+        leaderboard.forEach((entry, index) => {
+            if (mode === 'speed') {
+                const minutes = Math.floor(entry.total_time / 60);
+                const seconds = Math.floor(entry.total_time % 60);
+                const milliseconds = Math.floor((entry.total_time % 1) * 100);
+                const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+                html += `
+                    <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
+                        <span class="leaderboard-rank">${index + 1}</span>
+                        <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
+                        <span class="leaderboard-time">${timeString}</span>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
+                        <span class="leaderboard-rank">${index + 1}</span>
+                        <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
+                        <span class="leaderboard-wins">Wins: ${entry.wins || 0}</span>
+                        <span class="leaderboard-losses">Losses: ${entry.losses || 0}</span>
+                        <span class="leaderboard-winrate">${entry.winRate || '0.0'}%</span>
+                    </div>
+                `;
+            }
+        });
+        html += '</div>';
+        leaderboardContent.innerHTML = html;
+    } catch (error) {
+        console.error("Error loading leaderboard:", error);
+        leaderboardContent.innerHTML = `<p style='text-align: center; color: #ff4444;'>Error loading leaderboard</p>`;
+    }
+}
+
+function showLeaderboardPopup() {
+    document.getElementById("leaderboardModal").style.display = "flex";
+    currentLeaderboardMode = 'solo-regular';
+    
+    // Set active tab
+    document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.mode === currentLeaderboardMode) {
+            tab.classList.add('active');
+        }
+    });
+    
+    loadLeaderboard(currentLeaderboardMode);
+}
+
+function hideLeaderboardPopup() {
+    document.getElementById("leaderboardModal").style.display = "none";
+}
+
+// Leaderboard button handlers
+document.getElementById("showLeaderboardBtn").onclick = showLeaderboardPopup;
+document.getElementById("speedLeaderboardBtn").onclick = showLeaderboardPopup;
+document.getElementById("leaderboardCloseBtn").onclick = hideLeaderboardPopup;
+
+// Tab click handlers
+document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+    tab.onclick = () => {
+        document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentLeaderboardMode = tab.dataset.mode;
+        loadLeaderboard(currentLeaderboardMode);
+    };
+});
+
+// Close modal when clicking outside
+document.getElementById("leaderboardModal").onclick = (e) => {
+    if (e.target.id === "leaderboardModal") {
+        hideLeaderboardPopup();
+    }
+};
 
 // Leaderboard functionality
 async function loadSpeedLeaderboard() {
@@ -1654,6 +1811,13 @@ socket.on("gameOver", data => {
     let message = "";
     let feedbackMessage = "";
     
+    // Save stats for H2H game
+    const h2hMode = `h2h-${h2hState.gameMode || 'regular'}`;
+    saveGameStats(h2hMode, isWinner);
+    if (h2hState.guessed) {
+        saveGameHistory(h2hMode, songName, h2hState.strikes, isWinner);
+    }
+    
     if (isWinner) {
         message = `You won! You guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
         document.getElementById("h2hFeedback").className = "feedback correct";
@@ -1913,8 +2077,20 @@ function setupAutocomplete(inputId, listId) {
 }
 
 function hideAutocomplete(mode) {
-    const listId = mode === "solo" ? "soloAutocomplete" : "h2hAutocomplete";
-    document.getElementById(listId).style.display = "none";
+    let listId;
+    if (mode === "solo") {
+        listId = "soloAutocomplete";
+    } else if (mode === "h2h") {
+        listId = "h2hAutocomplete";
+    } else if (mode === "speed") {
+        listId = "speedAutocomplete";
+    } else {
+        return;
+    }
+    const list = document.getElementById(listId);
+    if (list) {
+        list.style.display = "none";
+    }
 }
 
 // ---------------------------

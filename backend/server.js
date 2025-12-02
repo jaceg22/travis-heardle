@@ -340,6 +340,59 @@ app.post("/api/speed-leaderboard", async (req, res) => {
     }
 });
 
+// Get leaderboard for a specific mode (wins/losses based)
+app.get("/api/leaderboard/:mode", async (req, res) => {
+    try {
+        const { mode } = req.params;
+        
+        // Get stats for this mode with user info
+        const { data: stats, error: statsError } = await supabase
+            .from('stats')
+            .select('user_id, wins, losses')
+            .eq('mode', mode)
+            .order('wins', { ascending: false })
+            .limit(10);
+        
+        if (statsError) throw statsError;
+        
+        if (!stats || stats.length === 0) {
+            return res.json({ leaderboard: [] });
+        }
+        
+        // Get usernames for each user_id
+        const userIds = stats.map(s => s.user_id);
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, username')
+            .in('id', userIds);
+        
+        if (usersError) throw usersError;
+        
+        // Create a map of user_id to username
+        const userMap = {};
+        (users || []).forEach(user => {
+            userMap[user.id] = user.username;
+        });
+        
+        // Format the leaderboard
+        const leaderboard = stats.map(item => {
+            const total = item.wins + item.losses;
+            const winRate = total > 0 ? ((item.wins / total) * 100).toFixed(1) : '0.0';
+            return {
+                username: userMap[item.user_id] || 'Unknown',
+                wins: item.wins,
+                losses: item.losses,
+                winRate: winRate
+            };
+        });
+        
+        res.json({ leaderboard });
+    } catch (error) {
+        console.error("Leaderboard error:", error);
+        res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+});
+
 const io = new Server(httpServer, {
   cors: { origin: "*" },
 });
