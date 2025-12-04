@@ -702,6 +702,78 @@ input[type="text"]:focus {
     border-color: #777;
 }
 
+/* ARTIST SELECTION PAGE */
+#artistSelection {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+}
+
+.artist-selection-container {
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 40px;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+}
+
+.artist-selection-container h1 {
+    margin-bottom: 40px;
+    color: #fff;
+    font-size: 32px;
+}
+
+.artist-options {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.artist-option {
+    background: #222;
+    border: 3px solid #555;
+    border-radius: 15px;
+    padding: 30px;
+    min-width: 200px;
+    flex: 1;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.artist-option:hover {
+    border-color: #0f0;
+    background: #2a2a2a;
+    transform: translateY(-5px);
+}
+
+.artist-option h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.artist-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #0f0;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.artist-btn:hover {
+    background: #0a0;
+}
+
 .error-message {
     color: #ff4444;
     margin-top: 10px;

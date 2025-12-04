@@ -11,9 +11,12 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY || "YOUR_SUPABASE_ANON_KEY_HERE";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---------------------------
-// SONG LIST (same as your python)
+// SONG LISTS
 // ---------------------------
-const songs = [
+import { jcoleSongs } from './jcole_songs.js';
+import { drakeSongs } from './drake_songs.js';
+
+const travisSongs = [
   "16 Chapels",
   "3500",
   "90210",
@@ -90,6 +93,16 @@ const songs = [
   "the ends","The Prayer","THE SCOTTS","through the late night","TIL FURTHER NOTICE","TOPIA TWINS","Trance","Upper Echelon",
   "Uptown","WAKE UP","Watch","way back","WHO? WHAT!","wonderful","YOSEMITE","Zombies"
 ];
+
+// Helper function to get songs based on artist
+function getSongsForArtist(artist) {
+    if (artist === 'jcole') {
+        return jcoleSongs;
+    } else if (artist === 'drake') {
+        return drakeSongs;
+    }
+    return travisSongs;
+}
 
 // Duration values (lower is better)
 const DURATIONS = [1, 2.5, 4.5, 8, 16, 30];
@@ -295,12 +308,25 @@ app.get("/api/stats/:user_id", async (req, res) => {
 // ---------------------------
 app.get("/api/speed-leaderboard", async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const artist = req.query.artist || 'travis'; // Default to travis for backward compatibility
+        
+        let query = supabase
             .from('speed_leaderboard')
             .select('username, total_time, rounds_completed, created_at')
-            .eq('rounds_completed', 15)
-            .order('total_time', { ascending: true })
-            .limit(10);
+            .eq('rounds_completed', 15);
+        
+        // Filter by artist if column exists (for backward compatibility)
+        // If column doesn't exist yet, it will just ignore the filter
+        try {
+            query = query.eq('artist', artist);
+        } catch (e) {
+            // Column might not exist yet - ignore and return all
+            console.log("Artist column may not exist yet, returning all records");
+        }
+        
+        query = query.order('total_time', { ascending: true }).limit(10);
+        
+        const { data, error } = await query;
         
         if (error) throw error;
         
@@ -313,13 +339,14 @@ app.get("/api/speed-leaderboard", async (req, res) => {
 
 app.post("/api/speed-leaderboard", async (req, res) => {
     try {
-        const { user_id, username, total_time, rounds_completed } = req.body;
+        const { user_id, username, total_time, rounds_completed, artist } = req.body;
         
         console.log("Speed leaderboard save request:", {
             user_id,
             username,
             total_time,
-            rounds_completed
+            rounds_completed,
+            artist
         });
         
         if (!user_id || !username || !total_time || rounds_completed === undefined) {
@@ -330,14 +357,21 @@ app.post("/api/speed-leaderboard", async (req, res) => {
         // Only save if completed all 15 rounds
         if (rounds_completed === 15) {
             console.log("Saving to speed_leaderboard table...");
+            const insertData = {
+                user_id,
+                username,
+                total_time,
+                rounds_completed
+            };
+            
+            // Add artist if provided (for backward compatibility)
+            if (artist) {
+                insertData.artist = artist;
+            }
+            
             const { data, error } = await supabase
                 .from('speed_leaderboard')
-                .insert([{
-                    user_id,
-                    username,
-                    total_time,
-                    rounds_completed
-                }])
+                .insert([insertData])
                 .select();
             
             if (error) {
@@ -468,8 +502,9 @@ const io = new Server(httpServer, {
 // ---------------------------
 const lobbies = {};
 
-// Pick a random song
-function randomSong() {
+// Pick a random song for an artist
+function randomSong(artist = 'travis') {
+  const songs = getSongsForArtist(artist);
   return songs[Math.floor(Math.random() * songs.length)];
 }
 
@@ -483,7 +518,7 @@ function randomStart() {
 // ---------------------------
 io.on("connection", (socket) => {
 
-  socket.on("createLobby", ({ username, gameMode }) => {
+  socket.on("createLobby", ({ username, gameMode, artist = 'travis' }) => {
     if (!username) {
       socket.emit("lobbyError", "Username required");
       return;
@@ -491,7 +526,7 @@ io.on("connection", (socket) => {
     
     const lobbyId = Math.random().toString(36).substring(2, 7).toUpperCase();
 
-    const selectedSong = randomSong();
+    const selectedSong = randomSong(artist);
     const start = gameMode === 'random' ? randomStart() : 0;
 
     lobbies[lobbyId] = {
@@ -502,6 +537,7 @@ io.on("connection", (socket) => {
       scores: {},
       roundFinished: false,
       gameMode: gameMode || 'regular',
+      artist: artist || 'travis',
       newSongRequests: {}
     };
 
@@ -656,7 +692,7 @@ io.on("connection", (socket) => {
     if (!game || !game.roundFinished) return;
 
     // Generate new song
-    game.song = randomSong();
+    game.song = randomSong(game.artist || 'travis');
     game.startTime = game.gameMode === 'random' ? randomStart() : 0;
     game.roundFinished = false;
     
@@ -702,7 +738,7 @@ io.on("connection", (socket) => {
       game.newSongRequests = {};
       
       // Generate new song
-      game.song = randomSong();
+      game.song = randomSong(game.artist || 'travis');
       game.startTime = game.gameMode === 'random' ? randomStart() : 0;
       game.roundFinished = false;
       

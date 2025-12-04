@@ -1,25 +1,40 @@
 // ---------------------------
 // CONFIG
 // ---------------------------
-const SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+let SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
 const SUPABASE_COVERS_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/album";
 const BACKEND_URL = "https://travis-heardle.onrender.com";
+
+// Update SUPABASE_BASE on load if artist is selected
+const savedArtist = localStorage.getItem('selectedArtist');
+if (savedArtist === 'jcole') {
+    SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
+} else if (savedArtist === 'drake') {
+    SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+}
 
 // ---------------------------
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
+let selectedArtist = null; // 'travis', 'jcole', or 'drake'
 
 // Check if user is logged in from localStorage
 function initAuth() {
     const savedUser = localStorage.getItem('currentUser');
     const skipLogin = localStorage.getItem('skipLogin');
+    const savedArtist = localStorage.getItem('selectedArtist');
     
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
             localStorage.removeItem('skipLogin'); // Clear skip flag if user logs in
-            showHomePage();
+            if (savedArtist) {
+                selectedArtist = savedArtist;
+                showHomePage();
+            } else {
+                showArtistSelection();
+            }
         } catch (e) {
             localStorage.removeItem('currentUser');
             showLoginPage();
@@ -27,7 +42,12 @@ function initAuth() {
     } else if (skipLogin === 'true') {
         // User previously skipped login
         currentUser = null;
-        showHomePage();
+        if (savedArtist) {
+            selectedArtist = savedArtist;
+            showHomePage();
+        } else {
+            showArtistSelection();
+        }
     } else {
         showLoginPage();
     }
@@ -35,6 +55,19 @@ function initAuth() {
 
 function showLoginPage() {
     document.getElementById("loginPage").style.display = "block";
+    document.getElementById("artistSelection").style.display = "none";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("soloGame").style.display = "none";
+    document.getElementById("h2hMenu").style.display = "none";
+    document.getElementById("h2hGame").style.display = "none";
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedLeaderboard").style.display = "none";
+}
+
+function showArtistSelection() {
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("artistSelection").style.display = "block";
     document.getElementById("home").style.display = "none";
     document.getElementById("soloGame").style.display = "none";
     document.getElementById("h2hMenu").style.display = "none";
@@ -46,6 +79,7 @@ function showLoginPage() {
 
 function showHomePage() {
     document.getElementById("loginPage").style.display = "none";
+    document.getElementById("artistSelection").style.display = "none";
     document.getElementById("home").style.display = "block";
     document.getElementById("soloGame").style.display = "none";
     document.getElementById("h2hMenu").style.display = "none";
@@ -53,6 +87,16 @@ function showHomePage() {
     document.getElementById("speedGame").style.display = "none";
     document.getElementById("speedGameOver").style.display = "none";
     document.getElementById("speedLeaderboard").style.display = "none";
+    
+    // Update title based on selected artist
+    if (selectedArtist === 'jcole') {
+        document.querySelector("#home h1").textContent = "J. Cole Heardle";
+    } else if (selectedArtist === 'drake') {
+        document.querySelector("#home h1").textContent = "Drake Heardle";
+    } else {
+        document.querySelector("#home h1").textContent = "Travis Scott Heardle";
+    }
+    
     if (currentUser) {
         document.getElementById("loggedInUser").textContent = `Logged in as: ${currentUser.username}`;
         document.getElementById("logoutBtn").style.display = "block";
@@ -118,7 +162,15 @@ document.getElementById("registerBtn").onclick = async () => {
         // Registration successful, auto-login
         currentUser = data.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showHomePage();
+        
+        // Check if artist is already selected
+        const savedArtist = localStorage.getItem('selectedArtist');
+        if (savedArtist) {
+            selectedArtist = savedArtist;
+            showHomePage();
+        } else {
+            showArtistSelection();
+        }
     } catch (error) {
         errorDiv.textContent = "Registration failed. Please try again.";
         console.error("Registration error:", error);
@@ -154,7 +206,15 @@ document.getElementById("loginBtn").onclick = async () => {
         // Login successful
         currentUser = data.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showHomePage();
+        
+        // Check if artist is already selected
+        const savedArtist = localStorage.getItem('selectedArtist');
+        if (savedArtist) {
+            selectedArtist = savedArtist;
+            showHomePage();
+        } else {
+            showArtistSelection();
+        }
     } catch (error) {
         errorDiv.textContent = "Login failed. Please try again.";
         console.error("Login error:", error);
@@ -172,8 +232,45 @@ document.getElementById("skipLoginBtn").onclick = () => {
     // Skip login - allow play without recording stats
     currentUser = null;
     localStorage.setItem('skipLogin', 'true');
-    showHomePage();
+    
+    // Check if artist is already selected
+    const savedArtist = localStorage.getItem('selectedArtist');
+    if (savedArtist) {
+        selectedArtist = savedArtist;
+        showHomePage();
+    } else {
+        showArtistSelection();
+    }
 };
+
+// Artist selection handlers
+document.getElementById("travisSelectBtn").onclick = () => {
+    selectArtist('travis');
+};
+
+document.getElementById("jcoleSelectBtn").onclick = () => {
+    selectArtist('jcole');
+};
+
+document.getElementById("drakeSelectBtn").onclick = () => {
+    selectArtist('drake');
+};
+
+function selectArtist(artist) {
+    selectedArtist = artist;
+    localStorage.setItem('selectedArtist', artist);
+    
+    // Update Supabase base URL based on artist
+    if (artist === 'jcole') {
+        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
+    } else if (artist === 'drake') {
+        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+    } else {
+        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+    }
+    
+    showHomePage();
+}
 
 // Initialize auth when DOM is ready
 if (document.readyState === 'loading') {
@@ -387,6 +484,904 @@ const SONGS = [
     "Uptown","WAKE UP","Watch","way back","WHO? WHAT!","wonderful","YOSEMITE","Zombies"
   ];
 
+// J. Cole songs list
+const JCOLE_SONGS = [
+  // 2014 Forest Hills Drive
+  "Intro",
+  "January 28th",
+  "Wet Dreamz",
+  "03' Adolescence",
+  "A Tale of 2 Citiez",
+  "Fire Squad",
+  "St. Tropez",
+  "G.O.M.D.",
+  "No Role Modelz",
+  "Hello",
+  "Apparently",
+  "Love Yourz",
+  "Note to Self",
+  
+  // 4 Your Eyez Only
+  "For Whom the Bell Tolls",
+  "Immortal",
+  "Deja Vu",
+  "Ville Mentality",
+  "She's Mine Pt. 1",
+  "Change",
+  "Neighbors",
+  "Foldin Clothes",
+  "She's Mine Pt. 2",
+  "4 Your Eyez Only",
+  
+  // Born Sinner
+  "Villuminati",
+  "Kerney Sermon (Skit)",
+  "LAnd of the Snakes",
+  "Power Trip (feat. Miguel)",
+  "Mo Money (Interlude)",
+  "Trouble",
+  "Runaway",
+  "She Knows (feat. Amber Coffman & Cults)",
+  "Rich Niggaz",
+  "Where's Jermaine_ (Skit)",
+  "Forbidden Fruit (feat. Kendrick Lamar)",
+  "Chaining Day",
+  "Ain't That Some Shit (Interlude)",
+  "Crooked Smile (feat. TLC)",
+  "Let Nas Down",
+  "Born Sinner (feat. @Fauntleroy)",
+  "Miss America",
+  "New York Times (feat. 50 Cent & Bas)",
+  "Is She Gon Pop",
+  "Niggaz Know",
+  "Sparks Will Fly (feat. Jhené Aiko)",
+  
+  // Cole World: The Sideline Story
+  "Dollar and a Dream III",
+  "Can't Get Enough (feat. Trey Songz)",
+  "Lights Please",
+  "Interlude",
+  "Sideline Story",
+  "Mr. Nice Watch (feat. Jay-Z)",
+  "Cole World",
+  "In the Morning (feat. Drake)",
+  "Lost Ones",
+  "Nobody's Perfect (feat. Missy Elliott)",
+  "Never Told",
+  "Rise & Shine",
+  "God's Gift",
+  "Breakdown",
+  "Work Out",
+  "Who Dat",
+  "Daddy's Little Girl",
+  
+  // Friday Night Lights
+  "Friday Night Lights (Intro)",
+  "Too Deep for the Intro",
+  "Before I'm Gone",
+  "Back to the Topic (Freestyle)",
+  "You Got It (feat. Wale)",
+  "Villematic",
+  "Enchanted (feat. Wale)",
+  "Blow Up",
+  "Higher",
+  "In the Morning (feat. Drake)",
+  "2Face",
+  "The Autograph",
+  "Best Friend",
+  "Cost Me a Lot",
+  "Premeditated Murder",
+  "Home for the Holidays",
+  "Love Me Not",
+  "See World",
+  "Farewell",
+  "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)",
+  
+  // KOD
+  "Intro",
+  "KOD",
+  "Photograph",
+  "The Cut Off (feat. kiLL edward)",
+  "ATM",
+  "Motiv8",
+  "Kevin_s Heart",
+  "BRACKETS",
+  "Once an Addict (Interlude)",
+  "FRIENDS (feat. kiLL edward)",
+  "Window Pain (Outro)",
+  "1985 (Intro to _The Fall Off_)",
+  
+  // The Come Up
+  "Intro",
+  "Simba",
+  "I'm the Man",
+  "School Daze",
+  "Dollar and a Dream",
+  "Throw It Up",
+  "Quote Me",
+  "College Boy",
+  "Split You Up",
+  "Plain",
+  "The Come Up",
+  "Mighty Crazy",
+  "Dead Presidents",
+  "Lil' Ghetto Nigga",
+  "Homecoming",
+  "Carolina On My Mind",
+  "Can't Cry",
+  "Goin' Off",
+  "Rags to Riches (At the Beep)",
+  "Get It",
+  "I Do My Thing",
+  
+  // The Warm Up
+  "The Warm Up (Intro)",
+  "Welcome",
+  "Can I Live_",
+  "Grown Simba",
+  "Just to Get By",
+  "Lights Please",
+  "Dead Presidents 2",
+  "I Get Up",
+  "World Is Empty",
+  "Dreams (feat. Brandon Hines)",
+  "Royal Flush",
+  "Dollar and a Dream II",
+  "Water Break (Interlude)",
+  "Heartache",
+  "Get Away",
+  "Knock Knock",
+  "Ladies (feat. Lee Fields & The Expressionists)",
+  "Til Infinity",
+  "The Badness (feat. Omen)",
+  "Hold It Down",
+  "Last Call",
+  "Losing My Balance",
+  
+  // Truly Yours Vol. 1
+  "Can I Holla At Ya",
+  "Crunch Time",
+  "Rise Above",
+  "Tears for ODB",
+  "Stay (2009)",
+  
+  // Truly Yours, Vol. 2
+  "Cole Summer",
+  "Kenny Lofton (feat. Young Jeezy)",
+  "Chris Tucker (feat. 2 Chainz)",
+  "Head Bussa",
+  "Cousins (feat. Bas)",
+  "3 Wishes"
+];
+
+// J. Cole album mapping
+const JCOLE_ALBUM_COVERS = {
+  // 2014 Forest Hills Drive
+  "Intro": "foresthills",
+  "January 28th": "foresthills",
+  "Wet Dreamz": "foresthills",
+  "03' Adolescence": "foresthills",
+  "A Tale of 2 Citiez": "foresthills",
+  "Fire Squad": "foresthills",
+  "St. Tropez": "foresthills",
+  "G.O.M.D.": "foresthills",
+  "No Role Modelz": "foresthills",
+  "Hello": "foresthills",
+  "Apparently": "foresthills",
+  "Love Yourz": "foresthills",
+  "Note to Self": "foresthills",
+  
+  // 4 Your Eyez Only
+  "For Whom the Bell Tolls": "foureyez",
+  "Immortal": "foureyez",
+  "Deja Vu": "foureyez",
+  "Ville Mentality": "foureyez",
+  "She's Mine Pt. 1": "foureyez",
+  "Change": "foureyez",
+  "Neighbors": "foureyez",
+  "Foldin Clothes": "foureyez",
+  "She's Mine Pt. 2": "foureyez",
+  "4 Your Eyez Only": "foureyez",
+  
+  // Born Sinner
+  "Villuminati": "bornsinner",
+  "Kerney Sermon (Skit)": "bornsinner",
+  "LAnd of the Snakes": "bornsinner",
+  "Power Trip (feat. Miguel)": "bornsinner",
+  "Mo Money (Interlude)": "bornsinner",
+  "Trouble": "bornsinner",
+  "Runaway": "bornsinner",
+  "She Knows (feat. Amber Coffman & Cults)": "bornsinner",
+  "Rich Niggaz": "bornsinner",
+  "Where's Jermaine_ (Skit)": "bornsinner",
+  "Forbidden Fruit (feat. Kendrick Lamar)": "bornsinner",
+  "Chaining Day": "bornsinner",
+  "Ain't That Some Shit (Interlude)": "bornsinner",
+  "Crooked Smile (feat. TLC)": "bornsinner",
+  "Let Nas Down": "bornsinner",
+  "Born Sinner (feat. @Fauntleroy)": "bornsinner",
+  "Miss America": "bornsinner",
+  "New York Times (feat. 50 Cent & Bas)": "bornsinner",
+  "Is She Gon Pop": "bornsinner",
+  "Niggaz Know": "bornsinner",
+  "Sparks Will Fly (feat. Jhené Aiko)": "bornsinner",
+  
+  // Cole World: The Sideline Story
+  "Dollar and a Dream III": "sideline",
+  "Can't Get Enough (feat. Trey Songz)": "sideline",
+  "Lights Please": "sideline",
+  "Sideline Story": "sideline",
+  "Mr. Nice Watch (feat. Jay-Z)": "sideline",
+  "Cole World": "sideline",
+  "In the Morning (feat. Drake)": "sideline",
+  "Lost Ones": "sideline",
+  "Nobody's Perfect (feat. Missy Elliott)": "sideline",
+  "Never Told": "sideline",
+  "Rise & Shine": "sideline",
+  "God's Gift": "sideline",
+  "Breakdown": "sideline",
+  "Work Out": "sideline",
+  "Who Dat": "sideline",
+  "Daddy's Little Girl": "sideline",
+  
+  // Friday Night Lights
+  "Friday Night Lights (Intro)": "fnl",
+  "Too Deep for the Intro": "fnl",
+  "Before I'm Gone": "fnl",
+  "Back to the Topic (Freestyle)": "fnl",
+  "You Got It (feat. Wale)": "fnl",
+  "Villematic": "fnl",
+  "Enchanted (feat. Wale)": "fnl",
+  "Blow Up": "fnl",
+  "Higher": "fnl",
+  "2Face": "fnl",
+  "The Autograph": "fnl",
+  "Best Friend": "fnl",
+  "Cost Me a Lot": "fnl",
+  "Premeditated Murder": "fnl",
+  "Home for the Holidays": "fnl",
+  "Love Me Not": "fnl",
+  "See World": "fnl",
+  "Farewell": "fnl",
+  "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)": "fnl",
+  
+  // KOD
+  "Intro": "kod",
+  "KOD": "kod",
+  "Photograph": "kod",
+  "The Cut Off (feat. kiLL edward)": "kod",
+  "ATM": "kod",
+  "Motiv8": "kod",
+  "Kevin_s Heart": "kod",
+  "BRACKETS": "kod",
+  "Once an Addict (Interlude)": "kod",
+  "FRIENDS (feat. kiLL edward)": "kod",
+  "Window Pain (Outro)": "kod",
+  "1985 (Intro to _The Fall Off_)": "kod",
+  
+  // The Come Up
+  "Simba": "warmup",
+  "I'm the Man": "warmup",
+  "School Daze": "warmup",
+  "Dollar and a Dream": "warmup",
+  "Throw It Up": "warmup",
+  "Quote Me": "warmup",
+  "College Boy": "warmup",
+  "Split You Up": "warmup",
+  "Plain": "warmup",
+  "The Come Up": "warmup",
+  "Mighty Crazy": "warmup",
+  "Dead Presidents": "warmup",
+  "Lil' Ghetto Nigga": "warmup",
+  "Homecoming": "warmup",
+  "Carolina On My Mind": "warmup",
+  "Can't Cry": "warmup",
+  "Goin' Off": "warmup",
+  "Rags to Riches (At the Beep)": "warmup",
+  "Get It": "warmup",
+  "I Do My Thing": "warmup",
+  
+  // The Warm Up
+  "The Warm Up (Intro)": "warmup",
+  "Welcome": "warmup",
+  "Can I Live_": "warmup",
+  "Grown Simba": "warmup",
+  "Just to Get By": "warmup",
+  "Dead Presidents 2": "warmup",
+  "I Get Up": "warmup",
+  "World Is Empty": "warmup",
+  "Dreams (feat. Brandon Hines)": "warmup",
+  "Royal Flush": "warmup",
+  "Dollar and a Dream II": "warmup",
+  "Water Break (Interlude)": "warmup",
+  "Heartache": "warmup",
+  "Get Away": "warmup",
+  "Knock Knock": "warmup",
+  "Ladies (feat. Lee Fields & The Expressionists)": "warmup",
+  "Til Infinity": "warmup",
+  "The Badness (feat. Omen)": "warmup",
+  "Hold It Down": "warmup",
+  "Last Call": "warmup",
+  "Losing My Balance": "warmup",
+  
+  // Truly Yours Vol. 1
+  "Can I Holla At Ya": "trulyyours",
+  "Crunch Time": "trulyyours",
+  "Rise Above": "trulyyours",
+  "Tears for ODB": "trulyyours",
+  "Stay (2009)": "trulyyours",
+  
+  // Truly Yours, Vol. 2
+  "Cole Summer": "trulyyours2",
+  "Kenny Lofton (feat. Young Jeezy)": "trulyyours2",
+  "Chris Tucker (feat. 2 Chainz)": "trulyyours2",
+  "Head Bussa": "trulyyours2",
+  "Cousins (feat. Bas)": "trulyyours2",
+  "3 Wishes": "trulyyours2"
+};
+
+// Drake songs list
+const DRAKE_SONGS = [
+  // Care Package
+  "4PM In Calabasas",
+  "5 Am in Toronto",
+  "Can I",
+  "Club Paradise",
+  "Days in The East",
+  "Draft Day",
+  "Dreams Money Can Buy",
+  "Free Spirit",
+  "Girls Love Beyonce",
+  "Heat Of The Moment",
+  "How Bout Now",
+  "I Get Lonely",
+  "Jodeci Freestyle",
+  "My Side",
+  "Paris Morton Music",
+  "The Motion",
+  "The Motion (feat. Sampha)",
+  "Trust Issues",
+  "Trust Issues (Remix)",
+  
+  // Certified Lover Boy
+  "7am On Bridle Path",
+  "Champagne Poetry",
+  "Fair Trade ft. Travis Scott",
+  "Fountains ft. Tems",
+  "Fcking Fans",
+  "Get Along Better ft. Ty Dolla $ign",
+  "Girls Want Girls ft. Lil Baby",
+  "IMY2 ft. Kid Cudi",
+  "In The Bible ft. Lil Durk & Giveon",
+  "Knife Talk ft. 21 Savage & Project Pat",
+  "Love All ft. Jay-Z",
+  "N 2 Deep ft. Future",
+  "No Friends In The Industry",
+  "Papi's Home",
+  "Pipe Down",
+  "Race My Mind",
+  "TSU",
+  "The Remorse",
+  "Way 2 Sexy ft. Future & Young Thug",
+  "Yebbas Heartbreak ft. Yebba",
+  "You Only Live Twice ft. Lil Wayne & Rick Ross",
+  
+  // Dark Lane Demo Tapes
+  "Chicago Freestyle ft. Giveon",
+  "Deep Pockets",
+  "Demons ft. Fivio Foreign, Sosa Geek",
+  "Desires ft. Future",
+  "From Florida With Love",
+  "Landed",
+  "Losses",
+  "Not You Too ft. Chris Brown",
+  "Pain 1993 ft. Playboi Carti",
+  "Time Flies",
+  "Toosie Slide",
+  "War",
+  "When To Say When",
+  "D4L",
+  
+  // For All The Dogs
+  "7969 Santa",
+  "8am in Charlotte",
+  "All The Parties",
+  "Amen",
+  "Another Late Night",
+  "Away From Home",
+  "BBL Love (Interlude)",
+  "Bahamas Promises",
+  "Calling For You",
+  "Daylight",
+  "Drew A Picasso",
+  "Fear Of Heights",
+  "First Person Shooter",
+  "Gently",
+  "IDGAF",
+  "Members Only",
+  "Polar Opposites",
+  "Rich Baby Daddy",
+  "Screw The World (Interlude)",
+  "Slime You Out",
+  "Tried Our Best",
+  "Virginia Beach",
+  "What Would Pluto Do",
+  
+  // Honestly Nevermind
+  "A Keeper",
+  "Calling My Name",
+  "Currents",
+  "Down Hill",
+  "Falling Back",
+  "Flight's Booked",
+  "Intro",
+  "Jimmy Cooks",
+  "Liability",
+  "Massive",
+  "Overdrive",
+  "Sticky",
+  "Texts Go Green",
+  "Tie That Binds",
+  
+  // If Youre Reading This Its Too Late
+  "10 Bands",
+  "6 God",
+  "6 Man",
+  "6PM In New York",
+  "Company",
+  "Energy",
+  "Jungle",
+  "Know Yourself",
+  "Legend",
+  "Madonna",
+  "No Tellin'",
+  "Now & Forever",
+  "Preach",
+  "Star67",
+  "Used To",
+  "Wednesday Night Interlude",
+  "You & The 6",
+  
+  // More Life
+  "4422",
+  "Blem",
+  "Can't Have Everything",
+  "Do Not Disturb",
+  "Fake Love",
+  "Free Smoke",
+  "Get It Together",
+  "Glow",
+  "Gyalchester",
+  "Ice Melts",
+  "Jorja Interlude",
+  "KMT",
+  "Lose You",
+  "Madiba Riddim",
+  "No Long Talk",
+  "Nothings Into Somethings",
+  "Passionfruit",
+  "Portland",
+  "Sacrifices",
+  "Since Way Back",
+  "Skepta Interlude",
+  "Teenage Fever",
+  
+  // Nothing Was The Same
+  "305 To My City",
+  "All Me",
+  "Come Thru",
+  "Connect",
+  "From Time",
+  "Furthest Thing",
+  "Hold On, We're Going Home (Album Version)",
+  "Own It",
+  "Pound Cake Paris Morton Music 2",
+  "Started From the Bottom (Explicit Version)",
+  "The Language",
+  "The Motion",
+  "Too Much",
+  "Tuscan Leather",
+  "Worst Behavior",
+  "Wu-Tang Forever",
+  
+  // Other
+  "Diplomatic Immunity",
+  "Evil Ways",
+  "Lemon Pepper Freestyle",
+  "Money In The Grave",
+  "Omerta",
+  "Red Button",
+  "Stories About My Brother",
+  "The Shoe Fits",
+  "Wants and Needs",
+  "What's Next",
+  "Wick Man",
+  "You Broke My Heart",
+  
+  // Scorpion
+  "8 Out Of 10",
+  "After Dark",
+  "Blue Tint",
+  "Cant Take A Joke",
+  "Dont Matter To Me",
+  "Elevate",
+  "Emotionless",
+  "Final Fantasy",
+  "Finesse",
+  "God's Plan",
+  "I'm Upset",
+  "In My Feelings",
+  "Is There More",
+  "Jaded",
+  "March 14",
+  "Mob Ties",
+  "Nice For What",
+  "Nonstop",
+  "Peak",
+  "Ratchet Happy Birthday",
+  "Sandras Rose",
+  "Summer Games",
+  "Survival",
+  "Talk Up",
+  "That's How You Feel",
+  
+  // So Far Gone
+  "A Night Off",
+  "Best I Ever Had",
+  "Brand New",
+  "Bria's Interlude",
+  "Houstatlantavegas",
+  "Ignant Shit",
+  "Lets Call It Off",
+  "Little Bit",
+  "Lust For Life",
+  "November 18th",
+  "Outro",
+  "Say Whats Real",
+  "Sooner Than Later",
+  "Successful",
+  "The Calm",
+  "Unstoppable",
+  "Uptown",
+  
+  // Take Care
+  "Cameras Good Ones Go Interlude (Medley)",
+  "Crew Love",
+  "Doing It Wrong",
+  "HYFR (Hell Ya Fucking Right)",
+  "Headlines (Explicit)",
+  "Look What You've Done",
+  "Lord Knows",
+  "Make Me Proud",
+  "Marvins Room",
+  "Over My Dead Body",
+  "Practice",
+  "Shot For Me",
+  "Take Care",
+  "The Real Her",
+  "The Ride",
+  "Under Ground Kings",
+  "We'll Be Fine",
+  
+  // Thank Me Later
+  "Fireworks (feat. Alicia Keys)",
+  "Karaoke",
+  "The Resistance",
+  "Over",
+  "Show Me A Good Time",
+  "Up All Night (feat. Nicki Minaj)",
+  "Fancy (feat. T.I. & Swizz Beatz)",
+  "Shut It Down (feat. The-Dream)",
+  "Unforgettable (feat. Young Jeezy)",
+  "Light Up (feat. Jay-Z)",
+  "Miss Me (feat. Lil Wayne)",
+  "Cece's Interlude",
+  "Find Your Love",
+  "Thank Me Now",
+  "Best I Ever Had (Bonus Track)",
+  "Successful (feat. Trey Songz & Lil Wayne) (Bonus Track)",
+  "Uptown (feat. Bun B & Lil Wayne) (Bonus Track)",
+  "9AM In Dallas (Bonus Track)",
+  
+  // Views
+  "9",
+  "Childs Play",
+  "Controlla",
+  "Faithful ft. Pimp C & dvsn",
+  "Feel No Ways",
+  "Fire & Desire",
+  "Grammys ft. Future",
+  "Hotline Bling",
+  "Hype",
+  "Keep the Family Close",
+  "One Dance ft. Wizkid & Kyla",
+  "Pop Style",
+  "Redemption",
+  "Still Here",
+  "Too Good ft. Rihanna",
+  "U With Me？",
+  "Views",
+  "Weston Road Flows",
+  "With You ft. PARTYNEXTDOOR"
+];
+
+// Drake album mapping
+const DRAKE_ALBUM_COVERS = {
+  "4PM In Calabasas": "carepackage",
+  "5 Am in Toronto": "carepackage",
+  "Can I": "carepackage",
+  "Club Paradise": "carepackage",
+  "Days in The East": "carepackage",
+  "Draft Day": "carepackage",
+  "Dreams Money Can Buy": "carepackage",
+  "Free Spirit": "carepackage",
+  "Girls Love Beyonce": "carepackage",
+  "Heat Of The Moment": "carepackage",
+  "How Bout Now": "carepackage",
+  "I Get Lonely": "carepackage",
+  "Jodeci Freestyle": "carepackage",
+  "My Side": "carepackage",
+  "Paris Morton Music": "carepackage",
+  "The Motion": "carepackage",
+  "The Motion (feat. Sampha)": "carepackage",
+  "Trust Issues": "carepackage",
+  "Trust Issues (Remix)": "carepackage",
+  "7am On Bridle Path": "clb",
+  "Champagne Poetry": "clb",
+  "Fair Trade ft. Travis Scott": "clb",
+  "Fountains ft. Tems": "clb",
+  "Fcking Fans": "clb",
+  "Get Along Better ft. Ty Dolla $ign": "clb",
+  "Girls Want Girls ft. Lil Baby": "clb",
+  "IMY2 ft. Kid Cudi": "clb",
+  "In The Bible ft. Lil Durk & Giveon": "clb",
+  "Knife Talk ft. 21 Savage & Project Pat": "clb",
+  "Love All ft. Jay-Z": "clb",
+  "N 2 Deep ft. Future": "clb",
+  "No Friends In The Industry": "clb",
+  "Papi's Home": "clb",
+  "Pipe Down": "clb",
+  "Race My Mind": "clb",
+  "TSU": "clb",
+  "The Remorse": "clb",
+  "Way 2 Sexy ft. Future & Young Thug": "clb",
+  "Yebbas Heartbreak ft. Yebba": "clb",
+  "You Only Live Twice ft. Lil Wayne & Rick Ross": "clb",
+  "Chicago Freestyle ft. Giveon": "darklane",
+  "Deep Pockets": "darklane",
+  "Demons ft. Fivio Foreign, Sosa Geek": "darklane",
+  "Desires ft. Future": "darklane",
+  "From Florida With Love": "darklane",
+  "Landed": "darklane",
+  "Losses": "darklane",
+  "Not You Too ft. Chris Brown": "darklane",
+  "Pain 1993 ft. Playboi Carti": "darklane",
+  "Time Flies": "darklane",
+  "Toosie Slide": "darklane",
+  "War": "darklane",
+  "When To Say When": "darklane",
+  "D4L": "darklane",
+  "7969 Santa": "fad",
+  "8am in Charlotte": "fad",
+  "All The Parties": "fad",
+  "Amen": "fad",
+  "Another Late Night": "fad",
+  "Away From Home": "fad",
+  "BBL Love (Interlude)": "fad",
+  "Bahamas Promises": "fad",
+  "Calling For You": "fad",
+  "Daylight": "fad",
+  "Drew A Picasso": "fad",
+  "Fear Of Heights": "fad",
+  "First Person Shooter": "fad",
+  "Gently": "fad",
+  "IDGAF": "fad",
+  "Members Only": "fad",
+  "Polar Opposites": "fad",
+  "Rich Baby Daddy": "fad",
+  "Screw The World (Interlude)": "fad",
+  "Slime You Out": "fad",
+  "Tried Our Best": "fad",
+  "Virginia Beach": "fad",
+  "What Would Pluto Do": "fad",
+  "A Keeper": "hnm",
+  "Calling My Name": "hnm",
+  "Currents": "hnm",
+  "Down Hill": "hnm",
+  "Falling Back": "hnm",
+  "Flight's Booked": "hnm",
+  "Intro": "hnm",
+  "Jimmy Cooks": "hnm",
+  "Liability": "hnm",
+  "Massive": "hnm",
+  "Overdrive": "hnm",
+  "Sticky": "hnm",
+  "Texts Go Green": "hnm",
+  "Tie That Binds": "hnm",
+  "10 Bands": "iyrtitl",
+  "6 God": "iyrtitl",
+  "6 Man": "iyrtitl",
+  "6PM In New York": "iyrtitl",
+  "Company": "iyrtitl",
+  "Energy": "iyrtitl",
+  "Jungle": "iyrtitl",
+  "Know Yourself": "iyrtitl",
+  "Legend": "iyrtitl",
+  "Madonna": "iyrtitl",
+  "No Tellin'": "iyrtitl",
+  "Now & Forever": "iyrtitl",
+  "Preach": "iyrtitl",
+  "Star67": "iyrtitl",
+  "Used To": "iyrtitl",
+  "Wednesday Night Interlude": "iyrtitl",
+  "You & The 6": "iyrtitl",
+  "4422": "morelife",
+  "Blem": "morelife",
+  "Can't Have Everything": "morelife",
+  "Do Not Disturb": "morelife",
+  "Fake Love": "morelife",
+  "Free Smoke": "morelife",
+  "Get It Together": "morelife",
+  "Glow": "morelife",
+  "Gyalchester": "morelife",
+  "Ice Melts": "morelife",
+  "Jorja Interlude": "morelife",
+  "KMT": "morelife",
+  "Lose You": "morelife",
+  "Madiba Riddim": "morelife",
+  "No Long Talk": "morelife",
+  "Nothings Into Somethings": "morelife",
+  "Passionfruit": "morelife",
+  "Portland": "morelife",
+  "Sacrifices": "morelife",
+  "Since Way Back": "morelife",
+  "Skepta Interlude": "morelife",
+  "Teenage Fever": "morelife",
+  "305 To My City": "nwts",
+  "All Me": "nwts",
+  "Come Thru": "nwts",
+  "Connect": "nwts",
+  "From Time": "nwts",
+  "Furthest Thing": "nwts",
+  "Hold On, We're Going Home (Album Version)": "nwts",
+  "Own It": "nwts",
+  "Pound Cake Paris Morton Music 2": "nwts",
+  "Started From the Bottom (Explicit Version)": "nwts",
+  "The Language": "nwts",
+  "The Motion": "nwts",
+  "Too Much": "nwts",
+  "Tuscan Leather": "nwts",
+  "Worst Behavior": "nwts",
+  "Wu-Tang Forever": "nwts",
+  "Diplomatic Immunity": "drake",
+  "Evil Ways": "drake",
+  "Lemon Pepper Freestyle": "drake",
+  "Money In The Grave": "drake",
+  "Omerta": "drake",
+  "Red Button": "drake",
+  "Stories About My Brother": "drake",
+  "The Shoe Fits": "drake",
+  "Wants and Needs": "drake",
+  "What's Next": "drake",
+  "Wick Man": "drake",
+  "You Broke My Heart": "drake",
+  "8 Out Of 10": "scorpion",
+  "After Dark": "scorpion",
+  "Blue Tint": "scorpion",
+  "Cant Take A Joke": "scorpion",
+  "Dont Matter To Me": "scorpion",
+  "Elevate": "scorpion",
+  "Emotionless": "scorpion",
+  "Final Fantasy": "scorpion",
+  "Finesse": "scorpion",
+  "God's Plan": "scorpion",
+  "I'm Upset": "scorpion",
+  "In My Feelings": "scorpion",
+  "Is There More": "scorpion",
+  "Jaded": "scorpion",
+  "March 14": "scorpion",
+  "Mob Ties": "scorpion",
+  "Nice For What": "scorpion",
+  "Nonstop": "scorpion",
+  "Peak": "scorpion",
+  "Ratchet Happy Birthday": "scorpion",
+  "Sandras Rose": "scorpion",
+  "Summer Games": "scorpion",
+  "Survival": "scorpion",
+  "Talk Up": "scorpion",
+  "That's How You Feel": "scorpion",
+  "A Night Off": "sfg",
+  "Best I Ever Had": "sfg",
+  "Brand New": "sfg",
+  "Bria's Interlude": "sfg",
+  "Houstatlantavegas": "sfg",
+  "Ignant Shit": "sfg",
+  "Lets Call It Off": "sfg",
+  "Little Bit": "sfg",
+  "Lust For Life": "sfg",
+  "November 18th": "sfg",
+  "Outro": "sfg",
+  "Say Whats Real": "sfg",
+  "Sooner Than Later": "sfg",
+  "Successful": "sfg",
+  "The Calm": "sfg",
+  "Unstoppable": "sfg",
+  "Uptown": "sfg",
+  "Cameras Good Ones Go Interlude (Medley)": "takecare",
+  "Crew Love": "takecare",
+  "Doing It Wrong": "takecare",
+  "HYFR (Hell Ya Fucking Right)": "takecare",
+  "Headlines (Explicit)": "takecare",
+  "Look What You've Done": "takecare",
+  "Lord Knows": "takecare",
+  "Make Me Proud": "takecare",
+  "Marvins Room": "takecare",
+  "Over My Dead Body": "takecare",
+  "Practice": "takecare",
+  "Shot For Me": "takecare",
+  "Take Care": "takecare",
+  "The Real Her": "takecare",
+  "The Ride": "takecare",
+  "Under Ground Kings": "takecare",
+  "We'll Be Fine": "takecare",
+  "Fireworks (feat. Alicia Keys)": "tml",
+  "Karaoke": "tml",
+  "The Resistance": "tml",
+  "Over": "tml",
+  "Show Me A Good Time": "tml",
+  "Up All Night (feat. Nicki Minaj)": "tml",
+  "Fancy (feat. T.I. & Swizz Beatz)": "tml",
+  "Shut It Down (feat. The-Dream)": "tml",
+  "Unforgettable (feat. Young Jeezy)": "tml",
+  "Light Up (feat. Jay-Z)": "tml",
+  "Miss Me (feat. Lil Wayne)": "tml",
+  "Cece's Interlude": "tml",
+  "Find Your Love": "tml",
+  "Thank Me Now": "tml",
+  "Best I Ever Had (Bonus Track)": "tml",
+  "Successful (feat. Trey Songz & Lil Wayne) (Bonus Track)": "tml",
+  "Uptown (feat. Bun B & Lil Wayne) (Bonus Track)": "tml",
+  "9AM In Dallas (Bonus Track)": "tml",
+  "9": "views",
+  "Childs Play": "views",
+  "Controlla": "views",
+  "Faithful ft. Pimp C & dvsn": "views",
+  "Feel No Ways": "views",
+  "Fire & Desire": "views",
+  "Grammys ft. Future": "views",
+  "Hotline Bling": "views",
+  "Hype": "views",
+  "Keep the Family Close": "views",
+  "One Dance ft. Wizkid & Kyla": "views",
+  "Pop Style": "views",
+  "Redemption": "views",
+  "Still Here": "views",
+  "Too Good ft. Rihanna": "views",
+  "U With Me？": "views",
+  "Views": "views",
+  "Weston Road Flows": "views",
+  "With You ft. PARTYNEXTDOOR": "views"
+};
+
+// Helper functions to get artist-specific data
+function getSongsForArtist(artist) {
+    if (artist === 'jcole') {
+        return JCOLE_SONGS;
+    } else if (artist === 'drake') {
+        return DRAKE_SONGS;
+    }
+    return SONGS;
+}
+
+function getAlbumMapForArtist(artist) {
+    if (artist === 'jcole') {
+        return JCOLE_ALBUM_COVERS;
+    } else if (artist === 'drake') {
+        return DRAKE_ALBUM_COVERS;
+    }
+    return ALBUM_COVERS;
+}
+
 // ---------------------------
 // SOCKET.IO (only for H2H mode)
 // ---------------------------
@@ -526,7 +1521,8 @@ document.getElementById("soloHome").onclick = () => {
 // SOLO MODE
 // ---------------------------
 async function startSoloGame() {
-    const songName = SONGS[Math.floor(Math.random() * SONGS.length)];
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    const songName = songs[Math.floor(Math.random() * songs.length)];
     let startTime = 0;
     
     if (gameMode === 'random') {
@@ -778,7 +1774,8 @@ document.getElementById("soloSkip").onclick = () => {
                 soloState.audio.pause();
             }
             // Save stats and game history
-            const mode = `solo-${gameMode}`;
+            const artistPrefix = selectedArtist || 'travis';
+            const mode = `${artistPrefix}-solo-${gameMode}`;
             saveGameStats(mode, false);
             saveGameHistory(mode, soloState.currentSong, soloState.strikes, false);
             // Show result modal
@@ -807,8 +1804,9 @@ document.getElementById("soloGuess").onclick = () => {
     if (!guess) return;
     
     // Check if song exists in list
+    const songs = getSongsForArtist(selectedArtist || 'travis');
     let matchedSong = null;
-    for (const song of SONGS) {
+    for (const song of songs) {
         if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
             matchedSong = song;
             break;
@@ -849,7 +1847,8 @@ document.getElementById("soloGuess").onclick = () => {
             soloState.audio.pause();
         }
         // Save stats and game history
-        const mode = `solo-${gameMode}`;
+        const artistPrefix = selectedArtist || 'travis';
+        const mode = `${artistPrefix}-solo-${gameMode}`;
         saveGameStats(mode, true);
         saveGameHistory(mode, soloState.currentSong, soloState.strikes, true);
         // Show result modal
@@ -940,11 +1939,12 @@ async function startSpeedGame() {
 
 async function startSpeedRound() {
     // Select a random song that hasn't been played yet
-    let availableSongs = SONGS.filter(s => !speedState.songsPlayed.includes(s));
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let availableSongs = songs.filter(s => !speedState.songsPlayed.includes(s));
     if (availableSongs.length === 0) {
         // Reset if all songs used
         speedState.songsPlayed = [];
-        availableSongs = SONGS;
+        availableSongs = songs;
     }
     
     const songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
@@ -1070,6 +2070,7 @@ async function saveSpeedRun(totalTime, roundsCompleted) {
     });
     
     try {
+        const artistPrefix = selectedArtist || 'travis';
         const response = await fetch(`${BACKEND_URL}/api/speed-leaderboard`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1077,7 +2078,8 @@ async function saveSpeedRun(totalTime, roundsCompleted) {
                 user_id: currentUser.id,
                 username: currentUser.username,
                 total_time: totalTime,
-                rounds_completed: roundsCompleted
+                rounds_completed: roundsCompleted,
+                artist: artistPrefix
             })
         });
         
@@ -1289,7 +2291,9 @@ async function loadLeaderboard(mode) {
     try {
         let response;
         if (mode === 'speed') {
-            response = await fetch(`${BACKEND_URL}/api/speed-leaderboard`);
+            // Speed mode includes artist in the request
+            const artistPrefix = selectedArtist || 'travis';
+            response = await fetch(`${BACKEND_URL}/api/speed-leaderboard?artist=${artistPrefix}`);
         } else {
             response = await fetch(`${BACKEND_URL}/api/leaderboard/${mode}`);
         }
@@ -1368,12 +2372,15 @@ async function loadLeaderboard(mode) {
 
 function showLeaderboardPopup() {
     document.getElementById("leaderboardModal").style.display = "flex";
-    currentLeaderboardMode = 'solo-regular';
+    const artistPrefix = selectedArtist || 'travis';
+    currentLeaderboardMode = `${artistPrefix}-solo-regular`;
     
-    // Set active tab
+    // Set active tab - update mode names with artist prefix
     document.querySelectorAll('.leaderboard-tab').forEach(tab => {
         tab.classList.remove('active');
-        if (tab.dataset.mode === currentLeaderboardMode) {
+        const baseMode = tab.dataset.mode;
+        const prefixedMode = baseMode === 'speed' ? 'speed' : `${artistPrefix}-${baseMode}`;
+        if (prefixedMode === currentLeaderboardMode) {
             tab.classList.add('active');
         }
     });
@@ -1395,7 +2402,9 @@ document.querySelectorAll('.leaderboard-tab').forEach(tab => {
     tab.onclick = () => {
         document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        currentLeaderboardMode = tab.dataset.mode;
+        const baseMode = tab.dataset.mode;
+        const artistPrefix = selectedArtist || 'travis';
+        currentLeaderboardMode = baseMode === 'speed' ? 'speed' : `${artistPrefix}-${baseMode}`;
         loadLeaderboard(currentLeaderboardMode);
     };
 });
@@ -1468,7 +2477,11 @@ document.getElementById("create").onclick = () => {
     
     h2hState.username = username;
     h2hState.gameMode = gameMode;
-    socket.emit("createLobby", { username, gameMode });
+    socket.emit("createLobby", { 
+        username, 
+        gameMode,
+        artist: selectedArtist || 'travis'
+    });
 };
 
 socket.on("lobbyCreated", data => {
@@ -1753,8 +2766,9 @@ document.getElementById("h2hGuess").onclick = () => {
     if (!guess) return;
     
     // Check if song exists in list
+    const songs = getSongsForArtist(selectedArtist || 'travis');
     let matchedSong = null;
-    for (const song of SONGS) {
+    for (const song of songs) {
         if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
             matchedSong = song;
             break;
@@ -1872,7 +2886,8 @@ socket.on("gameOver", data => {
     let feedbackMessage = "";
     
     // Save stats for H2H game
-    const h2hMode = `h2h-${h2hState.gameMode || 'regular'}`;
+    const artistPrefix = selectedArtist || 'travis';
+    const h2hMode = `${artistPrefix}-h2h-${h2hState.gameMode || 'regular'}`;
     saveGameStats(h2hMode, isWinner);
     if (h2hState.guessed) {
         saveGameHistory(h2hMode, songName, h2hState.strikes, isWinner);
@@ -2080,7 +3095,8 @@ function setupAutocomplete(inputId, listId) {
             return;
         }
         
-    const filtered = SONGS.filter(song => 
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    const filtered = songs.filter(song => 
         song.toLowerCase().replace(/'/g, "").startsWith(query.replace(/'/g, ""))
     );
         
@@ -2158,13 +3174,15 @@ function hideAutocomplete(mode) {
 // ---------------------------
 function getAlbumCoverUrl(songName) {
     // Check if we have a custom cover mapped
-    if (ALBUM_COVERS[songName]) {
-        const albumName = ALBUM_COVERS[songName];
+    const albumMap = getAlbumMapForArtist(selectedArtist || 'travis');
+    if (albumMap[songName]) {
+        const albumName = albumMap[songName];
         // Try common image extensions
         return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(albumName)}.jpg`;
     }
-    // Default to "travis" album cover if song not found
-    return `${SUPABASE_COVERS_BASE}/travis.jpg`;
+    // Default album cover based on artist
+    const defaultCover = (selectedArtist === 'jcole') ? 'foresthills' : 'travis';
+    return `${SUPABASE_COVERS_BASE}/${defaultCover}.jpg`;
 }
 
 function showSongResultModal(songName, resultMessage, isCorrect) {
