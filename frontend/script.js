@@ -281,7 +281,7 @@ document.getElementById("bbbmSelectBtn").onclick = () => {
     selectArtist('bbbm');
 };
 
-document.getElementByIddocument.getElementById("lilteccaSelectBtn").onclick = () => {
+document.getElementById("lilteccaSelectBtn").onclick = () => {
     selectArtist('liltecca');
 };
 

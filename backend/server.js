@@ -596,7 +596,7 @@ io.on("connection", (socket) => {
         username: username,
         strikesOut: false,
         strikes: 0
-      };
+    };
       
       // Initialize score for new player
       game.scores[username] = { wins: 0, losses: 0 };
@@ -889,7 +889,7 @@ function checkRoundEnd(game, lobbyId) {
           song: game.song,
           scores: game.scores
         });
-      }
+    }
     }
   }
 }
