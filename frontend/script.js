@@ -1387,6 +1387,7 @@ const DRAKE_ALBUM_COVERS = {
 };
 
 // Big Black Banana Man songs list
+// EXACT filenames (without .mp3): Hey Its 21.mp3, Astagfurillah.mp3, Whats Happen Gonna Next.mp3, Free Mr Sandhu ft. Mr Nize.mp3
 const BBBM_SONGS = [
   "Hey Its 21",
   "Astagfurillah",
