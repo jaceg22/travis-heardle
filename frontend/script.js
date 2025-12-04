@@ -1388,15 +1388,15 @@ const DRAKE_ALBUM_COVERS = {
 
 // Big Black Banana Man songs list
 const BBBM_SONGS = [
-  "21",
+  "Hey Its 21",
   "Astagfurillah",
-  "What's Happen Gonna Next",
+  "Whats Happen Gonna Next",
   "Free Mr Sandhu ft. Mr Nize"
 ];
 
 // Big Black Banana Man album mapping
 const BBBM_ALBUM_COVERS = {
-  "21": "21",
+  "Hey Its 21": "21",
   "Astagfurillah": "ast",
   "What's Happen Gonna Next": "whgn",
   "Free Mr Sandhu ft. Mr Nize": "sandhu"

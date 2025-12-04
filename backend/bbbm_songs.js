@@ -3,9 +3,9 @@
 
 export const bbbmSongs = [
   // Singles
-  "21",
+  "Hey Its 21",
   "Astagfurillah",
-  "What's Happen Gonna Next",
+  "Whats Happen Gonna Next",
   "Free Mr Sandhu ft. Mr Nize"
 ];
 
