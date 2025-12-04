@@ -1398,7 +1398,7 @@ const BBBM_SONGS = [
 const BBBM_ALBUM_COVERS = {
   "Hey Its 21": "21",
   "Astagfurillah": "ast",
-  "What's Happen Gonna Next": "whgn",
+  "Whats Happen Gonna Next": "whgn",
   "Free Mr Sandhu ft. Mr Nize": "sandhu"
 };
 

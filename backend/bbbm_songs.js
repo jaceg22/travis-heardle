@@ -12,9 +12,9 @@ export const bbbmSongs = [
 // Album mapping for Big Black Banana Man songs
 // Image files in Supabase: 21.jpg, ast.jpg, whgn.jpg, sandhu.jpg
 export const bbbmAlbumMap = {
-  "21": "21",
+  "Hey Its 21": "21",
   "Astagfurillah": "ast",
-  "What's Happen Gonna Next": "whgn",
+  "Whats Happen Gonna Next": "whgn",
   "Free Mr Sandhu ft. Mr Nize": "sandhu"
 };
 
