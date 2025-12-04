@@ -5,12 +5,24 @@ let SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/
 const SUPABASE_COVERS_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/album";
 const BACKEND_URL = "https://travis-heardle.onrender.com";
 
+// Helper function to update SUPABASE_BASE based on artist
+function updateSupabaseBase(artist) {
+    if (artist === 'jcole') {
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
+        window.SUPABASE_BASE = SUPABASE_BASE;
+    } else if (artist === 'drake') {
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+        window.SUPABASE_BASE = SUPABASE_BASE;
+    } else {
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+        window.SUPABASE_BASE = SUPABASE_BASE;
+    }
+}
+
 // Update SUPABASE_BASE on load if artist is selected
 const savedArtist = localStorage.getItem('selectedArtist');
-if (savedArtist === 'jcole') {
-    SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
-} else if (savedArtist === 'drake') {
-    SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+if (savedArtist) {
+    updateSupabaseBase(savedArtist);
 }
 
 // ---------------------------
@@ -25,12 +37,19 @@ function initAuth() {
     const skipLogin = localStorage.getItem('skipLogin');
     const savedArtist = localStorage.getItem('selectedArtist');
     
+    // Set selectedArtist from localStorage immediately
+    if (savedArtist) {
+        selectedArtist = savedArtist;
+        updateSupabaseBase(savedArtist);
+    }
+    
     if (savedUser) {
         try {
             currentUser = JSON.parse(savedUser);
             localStorage.removeItem('skipLogin'); // Clear skip flag if user logs in
             if (savedArtist) {
                 selectedArtist = savedArtist;
+                updateSupabaseBase(savedArtist);
                 showHomePage();
             } else {
                 showArtistSelection();
@@ -44,6 +63,7 @@ function initAuth() {
         currentUser = null;
         if (savedArtist) {
             selectedArtist = savedArtist;
+            updateSupabaseBase(savedArtist);
             showHomePage();
         } else {
             showArtistSelection();
@@ -256,18 +276,27 @@ document.getElementById("drakeSelectBtn").onclick = () => {
     selectArtist('drake');
 };
 
+// Helper function to ensure selectedArtist is initialized from localStorage
+function ensureArtistSelected() {
+    if (!selectedArtist) {
+        const savedArtist = localStorage.getItem('selectedArtist');
+        if (savedArtist) {
+            selectedArtist = savedArtist;
+            updateSupabaseBase(savedArtist);
+        } else {
+            // Default to travis if no artist selected
+            selectedArtist = 'travis';
+            updateSupabaseBase('travis');
+        }
+    }
+}
+
 function selectArtist(artist) {
     selectedArtist = artist;
     localStorage.setItem('selectedArtist', artist);
     
     // Update Supabase base URL based on artist
-    if (artist === 'jcole') {
-        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
-    } else if (artist === 'drake') {
-        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
-    } else {
-        window.SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-    }
+    updateSupabaseBase(artist);
     
     showHomePage();
 }
@@ -1521,6 +1550,8 @@ document.getElementById("soloHome").onclick = () => {
 // SOLO MODE
 // ---------------------------
 async function startSoloGame() {
+    // Ensure selectedArtist is set from localStorage if not already set
+    ensureArtistSelected();
     const songs = getSongsForArtist(selectedArtist || 'travis');
     const songName = songs[Math.floor(Math.random() * songs.length)];
     let startTime = 0;
@@ -1895,6 +1926,9 @@ setupAutocomplete("soloGuessInput", "soloAutocomplete");
 // SPEED MODE
 // ---------------------------
 async function startSpeedGame() {
+    // Ensure selectedArtist is set from localStorage if not already set
+    ensureArtistSelected();
+    
     // Reset state for new game
     speedState = {
         currentSong: null,
@@ -1938,6 +1972,9 @@ async function startSpeedGame() {
 }
 
 async function startSpeedRound() {
+    // Ensure selectedArtist is set from localStorage if not already set
+    ensureArtistSelected();
+    
     // Select a random song that hasn't been played yet
     const songs = getSongsForArtist(selectedArtist || 'travis');
     let availableSongs = songs.filter(s => !speedState.songsPlayed.includes(s));
@@ -3095,6 +3132,7 @@ function setupAutocomplete(inputId, listId) {
             return;
         }
         
+    ensureArtistSelected();
     const songs = getSongsForArtist(selectedArtist || 'travis');
     const filtered = songs.filter(song => 
         song.toLowerCase().replace(/'/g, "").startsWith(query.replace(/'/g, ""))
