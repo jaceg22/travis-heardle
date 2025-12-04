@@ -37,7 +37,7 @@ function initAuth() {
     const skipLogin = localStorage.getItem('skipLogin');
     const savedArtist = localStorage.getItem('selectedArtist');
     
-    // Set selectedArtist from localStorage immediately
+    // Set selectedArtist from localStorage if it exists (for initialization)
     if (savedArtist) {
         selectedArtist = savedArtist;
         updateSupabaseBase(savedArtist);
@@ -47,13 +47,8 @@ function initAuth() {
         try {
             currentUser = JSON.parse(savedUser);
             localStorage.removeItem('skipLogin'); // Clear skip flag if user logs in
-            if (savedArtist) {
-                selectedArtist = savedArtist;
-                updateSupabaseBase(savedArtist);
-                showHomePage();
-            } else {
-                showArtistSelection();
-            }
+            // Always show artist selection first to let user choose
+            showArtistSelection();
         } catch (e) {
             localStorage.removeItem('currentUser');
             showLoginPage();
@@ -61,13 +56,8 @@ function initAuth() {
     } else if (skipLogin === 'true') {
         // User previously skipped login
         currentUser = null;
-        if (savedArtist) {
-            selectedArtist = savedArtist;
-            updateSupabaseBase(savedArtist);
-            showHomePage();
-        } else {
-            showArtistSelection();
-        }
+        // Always show artist selection first to let user choose
+        showArtistSelection();
     } else {
         showLoginPage();
     }
@@ -248,19 +238,20 @@ document.getElementById("logoutBtn").onclick = () => {
     showLoginPage();
 };
 
+document.getElementById("changeArtistBtn").onclick = () => {
+    // Clear saved artist and show artist selection
+    localStorage.removeItem('selectedArtist');
+    selectedArtist = null;
+    showArtistSelection();
+};
+
 document.getElementById("skipLoginBtn").onclick = () => {
     // Skip login - allow play without recording stats
     currentUser = null;
     localStorage.setItem('skipLogin', 'true');
     
-    // Check if artist is already selected
-    const savedArtist = localStorage.getItem('selectedArtist');
-    if (savedArtist) {
-        selectedArtist = savedArtist;
-        showHomePage();
-    } else {
-        showArtistSelection();
-    }
+    // Always show artist selection first to let user choose
+    showArtistSelection();
 };
 
 // Artist selection handlers
@@ -1052,7 +1043,7 @@ const DRAKE_SONGS = [
   "Summer Games",
   "Survival",
   "Talk Up",
-  "That's How You Feel",
+  "Thats How You Feel",
   
   // So Far Gone
   "A Night Off",
@@ -1127,8 +1118,8 @@ const DRAKE_SONGS = [
   "Pop Style",
   "Redemption",
   "Still Here",
-  "Too Good ft. Rihanna",
-  "U With Me？",
+  "Too Good",
+  "U With Me",
   "Views",
   "Weston Road Flows",
   "With You ft. PARTYNEXTDOOR"
@@ -1318,7 +1309,7 @@ const DRAKE_ALBUM_COVERS = {
   "Summer Games": "scorpion",
   "Survival": "scorpion",
   "Talk Up": "scorpion",
-  "That's How You Feel": "scorpion",
+  "Thats How You Feel": "scorpion",
   "A Night Off": "sfg",
   "Best I Ever Had": "sfg",
   "Brand New": "sfg",
@@ -1385,8 +1376,8 @@ const DRAKE_ALBUM_COVERS = {
   "Pop Style": "views",
   "Redemption": "views",
   "Still Here": "views",
-  "Too Good ft. Rihanna": "views",
-  "U With Me？": "views",
+  "Too Good": "views",
+  "U With Me": "views",
   "Views": "views",
   "Weston Road Flows": "views",
   "With You ft. PARTYNEXTDOOR": "views"
