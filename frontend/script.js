@@ -507,7 +507,6 @@ const SONGS = [
 // J. Cole songs list
 const JCOLE_SONGS = [
   // 2014 Forest Hills Drive
-  "Intro",
   "January 28th",
   "Wet Dreamz",
   "03' Adolescence",
@@ -543,7 +542,7 @@ const JCOLE_SONGS = [
   "Runaway",
   "She Knows (feat. Amber Coffman & Cults)",
   "Rich Niggaz",
-  "Where's Jermaine_ (Skit)",
+  "Where's Jermaine (Skit)",
   "Forbidden Fruit (feat. Kendrick Lamar)",
   "Chaining Day",
   "Ain't That Some Shit (Interlude)",
@@ -554,7 +553,7 @@ const JCOLE_SONGS = [
   "New York Times (feat. 50 Cent & Bas)",
   "Is She Gon Pop",
   "Niggaz Know",
-  "Sparks Will Fly (feat. Jhené Aiko)",
+  "Sparks Will Fly (feat. Jhene Aiko)",
   
   // Cole World: The Sideline Story
   "Dollar and a Dream III",
@@ -598,21 +597,19 @@ const JCOLE_SONGS = [
   "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)",
   
   // KOD
-  "Intro",
   "KOD",
   "Photograph",
   "The Cut Off (feat. kiLL edward)",
   "ATM",
   "Motiv8",
-  "Kevin_s Heart",
+  "Kevins Heart",
   "BRACKETS",
   "Once an Addict (Interlude)",
   "FRIENDS (feat. kiLL edward)",
   "Window Pain (Outro)",
-  "1985 (Intro to _The Fall Off_)",
+  "1985 (Intro to The Fall Off)",
   
   // The Come Up
-  "Intro",
   "Simba",
   "I'm the Man",
   "School Daze",
@@ -637,7 +634,7 @@ const JCOLE_SONGS = [
   // The Warm Up
   "The Warm Up (Intro)",
   "Welcome",
-  "Can I Live_",
+  "Can I Live",
   "Grown Simba",
   "Just to Get By",
   "Lights Please",
@@ -677,7 +674,6 @@ const JCOLE_SONGS = [
 // J. Cole album mapping
 const JCOLE_ALBUM_COVERS = {
   // 2014 Forest Hills Drive
-  "Intro": "foresthills",
   "January 28th": "foresthills",
   "Wet Dreamz": "foresthills",
   "03' Adolescence": "foresthills",
@@ -713,7 +709,7 @@ const JCOLE_ALBUM_COVERS = {
   "Runaway": "bornsinner",
   "She Knows (feat. Amber Coffman & Cults)": "bornsinner",
   "Rich Niggaz": "bornsinner",
-  "Where's Jermaine_ (Skit)": "bornsinner",
+  "Where's Jermaine (Skit)": "bornsinner",
   "Forbidden Fruit (feat. Kendrick Lamar)": "bornsinner",
   "Chaining Day": "bornsinner",
   "Ain't That Some Shit (Interlude)": "bornsinner",
@@ -724,7 +720,7 @@ const JCOLE_ALBUM_COVERS = {
   "New York Times (feat. 50 Cent & Bas)": "bornsinner",
   "Is She Gon Pop": "bornsinner",
   "Niggaz Know": "bornsinner",
-  "Sparks Will Fly (feat. Jhené Aiko)": "bornsinner",
+  "Sparks Will Fly (feat. Jhene Aiko)": "bornsinner",
   
   // Cole World: The Sideline Story
   "Dollar and a Dream III": "sideline",
@@ -766,18 +762,17 @@ const JCOLE_ALBUM_COVERS = {
   "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)": "fnl",
   
   // KOD
-  "Intro": "kod",
   "KOD": "kod",
   "Photograph": "kod",
   "The Cut Off (feat. kiLL edward)": "kod",
   "ATM": "kod",
   "Motiv8": "kod",
-  "Kevin_s Heart": "kod",
+  "Kevins Heart": "kod",
   "BRACKETS": "kod",
   "Once an Addict (Interlude)": "kod",
   "FRIENDS (feat. kiLL edward)": "kod",
   "Window Pain (Outro)": "kod",
-  "1985 (Intro to _The Fall Off_)": "kod",
+  "1985 (Intro to The Fall Off)": "kod",
   
   // The Come Up
   "Simba": "warmup",
@@ -804,7 +799,7 @@ const JCOLE_ALBUM_COVERS = {
   // The Warm Up
   "The Warm Up (Intro)": "warmup",
   "Welcome": "warmup",
-  "Can I Live_": "warmup",
+  "Can I Live": "warmup",
   "Grown Simba": "warmup",
   "Just to Get By": "warmup",
   "Dead Presidents 2": "warmup",
@@ -934,7 +929,6 @@ const DRAKE_SONGS = [
   "Down Hill",
   "Falling Back",
   "Flight's Booked",
-  "Intro",
   "Jimmy Cooks",
   "Liability",
   "Massive",
@@ -1210,7 +1204,6 @@ const DRAKE_ALBUM_COVERS = {
   "Down Hill": "hnm",
   "Falling Back": "hnm",
   "Flight's Booked": "hnm",
-  "Intro": "hnm",
   "Jimmy Cooks": "hnm",
   "Liability": "hnm",
   "Massive": "hnm",

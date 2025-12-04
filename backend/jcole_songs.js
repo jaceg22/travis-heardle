@@ -3,7 +3,6 @@
 
 export const jcoleSongs = [
   // 2014 Forest Hills Drive
-  "Intro",
   "January 28th",
   "Wet Dreamz",
   "03' Adolescence",
@@ -39,7 +38,7 @@ export const jcoleSongs = [
   "Runaway",
   "She Knows (feat. Amber Coffman & Cults)",
   "Rich Niggaz",
-  "Where's Jermaine_ (Skit)",
+  "Where's Jermaine (Skit)",
   "Forbidden Fruit (feat. Kendrick Lamar)",
   "Chaining Day",
   "Ain't That Some Shit (Interlude)",
@@ -50,10 +49,9 @@ export const jcoleSongs = [
   "New York Times (feat. 50 Cent & Bas)",
   "Is She Gon Pop",
   "Niggaz Know",
-  "Sparks Will Fly (feat. Jhené Aiko)",
+  "Sparks Will Fly (feat. Jhene Aiko)",
   
   // Cole World: The Sideline Story
-  "Intro",
   "Dollar and a Dream III",
   "Can't Get Enough (feat. Trey Songz)",
   "Lights Please",
@@ -95,21 +93,19 @@ export const jcoleSongs = [
   "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)",
   
   // KOD
-  "Intro",
   "KOD",
   "Photograph",
   "The Cut Off (feat. kiLL edward)",
   "ATM",
   "Motiv8",
-  "Kevin_s Heart",
+  "Kevins Heart",
   "BRACKETS",
   "Once an Addict (Interlude)",
   "FRIENDS (feat. kiLL edward)",
   "Window Pain (Outro)",
-  "1985 (Intro to _The Fall Off_)",
+  "1985 (Intro to The Fall Off)",
   
   // The Come Up
-  "Intro",
   "Simba",
   "I'm the Man",
   "School Daze",
@@ -134,7 +130,7 @@ export const jcoleSongs = [
   // The Warm Up
   "The Warm Up (Intro)",
   "Welcome",
-  "Can I Live_",
+  "Can I Live",
   "Grown Simba",
   "Just to Get By",
   "Lights Please",
@@ -175,7 +171,6 @@ export const jcoleSongs = [
 // Image files in Supabase: foresthills.jpg, foureyez.jpg, bornsinner.jpg, sideline.jpg, fnl.jpg, kod.jpg, trulyyours.jpg, trulyyours2.jpg, warmup.jpg
 export const jcoleAlbumMap = {
   // 2014 Forest Hills Drive
-  "Intro": "foresthills",
   "January 28th": "foresthills",
   "Wet Dreamz": "foresthills",
   "03' Adolescence": "foresthills",
@@ -211,7 +206,7 @@ export const jcoleAlbumMap = {
   "Runaway": "bornsinner",
   "She Knows (feat. Amber Coffman & Cults)": "bornsinner",
   "Rich Niggaz": "bornsinner",
-  "Where's Jermaine_ (Skit)": "bornsinner",
+  "Where's Jermaine (Skit)": "bornsinner",
   "Forbidden Fruit (feat. Kendrick Lamar)": "bornsinner",
   "Chaining Day": "bornsinner",
   "Ain't That Some Shit (Interlude)": "bornsinner",
@@ -222,7 +217,7 @@ export const jcoleAlbumMap = {
   "New York Times (feat. 50 Cent & Bas)": "bornsinner",
   "Is She Gon Pop": "bornsinner",
   "Niggaz Know": "bornsinner",
-  "Sparks Will Fly (feat. Jhené Aiko)": "bornsinner",
+  "Sparks Will Fly (feat. Jhene Aiko)": "bornsinner",
   
   // Cole World: The Sideline Story
   "Dollar and a Dream III": "sideline",
@@ -269,12 +264,12 @@ export const jcoleAlbumMap = {
   "The Cut Off (feat. kiLL edward)": "kod",
   "ATM": "kod",
   "Motiv8": "kod",
-  "Kevin_s Heart": "kod",
+  "Kevins Heart": "kod",
   "BRACKETS": "kod",
   "Once an Addict (Interlude)": "kod",
   "FRIENDS (feat. kiLL edward)": "kod",
   "Window Pain (Outro)": "kod",
-  "1985 (Intro to _The Fall Off_)": "kod",
+  "1985 (Intro to The Fall Off)": "kod",
   
   // The Come Up
   "Simba": "warmup",
@@ -301,7 +296,7 @@ export const jcoleAlbumMap = {
   // The Warm Up
   "The Warm Up (Intro)": "warmup",
   "Welcome": "warmup",
-  "Can I Live_": "warmup",
+  "Can I Live": "warmup",
   "Grown Simba": "warmup",
   "Just to Get By": "warmup",
   "Dead Presidents 2": "warmup",

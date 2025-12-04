@@ -791,8 +791,8 @@ input[type="text"]:focus {
 }
 
 .leaderboard-btn {
-    padding: 10px 20px;
-    font-size: 14px;
+    padding: 15px 30px;
+    font-size: 18px;
     background: #0f0;
     color: #000;
     border: none;
@@ -803,6 +803,7 @@ input[type="text"]:focus {
 
 .leaderboard-btn:hover {
     background: #0a0;
+    transform: scale(1.05);
 }
 
 .leaderboard-btn-speed {
