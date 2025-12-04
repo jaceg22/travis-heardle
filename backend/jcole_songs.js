@@ -223,6 +223,7 @@ export const jcoleAlbumMap = {
   "Dollar and a Dream III": "sideline",
   "Can't Get Enough (feat. Trey Songz)": "sideline",
   "Lights Please": "sideline",
+  "Interlude": "sideline",
   "Sideline Story": "sideline",
   "Mr. Nice Watch (feat. Jay-Z)": "sideline",
   "Cole World": "sideline",

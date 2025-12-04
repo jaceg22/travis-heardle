@@ -726,6 +726,7 @@ const JCOLE_ALBUM_COVERS = {
   "Dollar and a Dream III": "sideline",
   "Can't Get Enough (feat. Trey Songz)": "sideline",
   "Lights Please": "sideline",
+  "Interlude": "sideline",
   "Sideline Story": "sideline",
   "Mr. Nice Watch (feat. Jay-Z)": "sideline",
   "Cole World": "sideline",
@@ -1769,7 +1770,8 @@ document.getElementById("soloPlay").onclick = () => {
 
 document.getElementById("soloSkip").onclick = () => {
     if (soloState.guessed || soloState.strikes >= 6) return;
-    if (soloState.skips >= 5) {
+    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
+    if (soloState.skips >= 5 || soloState.strikes >= 5) {
         document.getElementById("soloSkip").disabled = true;
         return;
     }
@@ -1779,6 +1781,11 @@ document.getElementById("soloSkip").onclick = () => {
     const strikeIndex = soloState.strikes - 1;
     updateProgressBar('solo', strikeIndex, 'skip', 'Skipped');
     document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
+    
+    // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+    if (soloState.strikes >= 5) {
+        document.getElementById("soloSkip").disabled = true;
+    }
     
         if (soloState.strikes >= 6) {
             document.getElementById("soloSkip").disabled = true;
@@ -1836,6 +1843,11 @@ document.getElementById("soloGuess").onclick = () => {
         document.getElementById("soloFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("soloFeedback").className = "feedback not-found";
         document.getElementById("soloGuessInput").value = "";
+        
+        // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+        if (soloState.strikes >= 5) {
+            document.getElementById("soloSkip").disabled = true;
+        }
         
         if (soloState.strikes >= 6) {
             document.getElementById("soloSkip").disabled = true;
@@ -2168,6 +2180,11 @@ document.getElementById("speedPlay").onclick = () => {
 
 document.getElementById("speedSkip").onclick = () => {
     if (speedState.gameOver || speedState.guessed || speedState.strikes >= 6) return;
+    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
+    if (speedState.strikes >= 5) {
+        document.getElementById("speedSkip").disabled = true;
+        return;
+    }
     
     if (speedState.audio) {
         speedState.audio.pause();
@@ -2180,6 +2197,11 @@ document.getElementById("speedSkip").onclick = () => {
     const strikeIndex = speedState.strikes - 1;
     updateProgressBar('speed', strikeIndex, 'skip', 'Skipped');
     document.getElementById("speedStrikes").textContent = `${speedState.strikes}/6 strikes`;
+    
+    // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+    if (speedState.strikes >= 5) {
+        document.getElementById("speedSkip").disabled = true;
+    }
     
     if (speedState.strikes >= 6) {
         endSpeedGame(false);
@@ -2197,8 +2219,9 @@ document.getElementById("speedGuess").onclick = () => {
     const guess = document.getElementById("speedGuessInput").value.trim();
     if (!guess) return;
     
+    const songs = getSongsForArtist(selectedArtist || 'travis');
     let matchedSong = null;
-    for (const song of SONGS) {
+    for (const song of songs) {
         if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
             matchedSong = song;
             break;
@@ -2214,6 +2237,11 @@ document.getElementById("speedGuess").onclick = () => {
         document.getElementById("speedFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("speedFeedback").className = "feedback not-found";
         document.getElementById("speedGuessInput").value = "";
+        
+        // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+        if (speedState.strikes >= 5) {
+            document.getElementById("speedSkip").disabled = true;
+        }
         
         if (speedState.strikes >= 6) {
             endSpeedGame(false);
@@ -2745,7 +2773,8 @@ document.getElementById("h2hPlay").onclick = () => {
 
 document.getElementById("h2hSkip").onclick = () => {
     if (h2hState.guessed || !h2hState.currentSong || h2hState.strikes >= 6 || !h2hState.gameStarted || h2hState.roundFinished) return;
-    if (h2hState.skips >= 5) {
+    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
+    if (h2hState.skips >= 5 || h2hState.strikes >= 5) {
         document.getElementById("h2hSkip").disabled = true;
         return;
     }
@@ -2755,6 +2784,11 @@ document.getElementById("h2hSkip").onclick = () => {
     const strikeIndex = h2hState.strikes - 1;
     updateProgressBar('h2h', strikeIndex, 'skip', 'Skipped');
     document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
+    
+    // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+    if (h2hState.strikes >= 5) {
+        document.getElementById("h2hSkip").disabled = true;
+    }
     
         if (h2hState.strikes >= 6) {
             h2hState.finished = true;
@@ -2804,6 +2838,11 @@ document.getElementById("h2hGuess").onclick = () => {
         document.getElementById("h2hFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("h2hFeedback").className = "feedback not-found";
         document.getElementById("h2hGuessInput").value = "";
+        
+        // Disable skip if we're now at 5 strikes (can't skip for 6th strike)
+        if (h2hState.strikes >= 5) {
+            document.getElementById("h2hSkip").disabled = true;
+        }
         
         if (h2hState.strikes >= 6) {
             h2hState.finished = true;
