@@ -16,6 +16,9 @@ function updateSupabaseBase(artist) {
     } else if (artist === 'bbbm') {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/BBBM";
         window.SUPABASE_BASE = SUPABASE_BASE;
+    } else if (artist === 'liltecca') {
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+        window.SUPABASE_BASE = SUPABASE_BASE;
     } else {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
         window.SUPABASE_BASE = SUPABASE_BASE;
@@ -32,7 +35,7 @@ if (savedArtist) {
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'jcole', 'drake', or 'bbbm'
+let selectedArtist = null; // 'travis', 'jcole', 'drake', 'bbbm', or 'liltecca'
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -108,6 +111,8 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "Drake Heardle";
     } else if (selectedArtist === 'bbbm') {
         document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
+    } else if (selectedArtist === 'liltecca') {
+        document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
     } else {
         document.querySelector("#home h1").textContent = "Travis Scott Heardle";
     }
@@ -274,6 +279,10 @@ document.getElementById("drakeSelectBtn").onclick = () => {
 
 document.getElementById("bbbmSelectBtn").onclick = () => {
     selectArtist('bbbm');
+};
+
+document.getElementByIddocument.getElementById("lilteccaSelectBtn").onclick = () => {
+    selectArtist('liltecca');
 };
 
 // Helper function to ensure selectedArtist is initialized from localStorage
@@ -1402,6 +1411,123 @@ const BBBM_ALBUM_COVERS = {
   "Free Mr Sandhu ft. Mr Nize": "sandhu"
 };
 
+// Lil Tecca songs list
+const LILTECCA_SONGS = [
+  // We Love You Tecca (WLYT)
+  "Ransom",
+  "Out Of Love",
+  "Love Me",
+  "Shots",
+  "Count Me Out",
+  "Did It Again",
+  "Royal Rage",
+  "Left Right",
+  "Sidenote",
+  "Amigo",
+  "Glocca Morra",
+  "200 My Baby",
+  "IDK",
+  "Bosses & Workers",
+  "Came In",
+  "Our Time",
+  
+  // Virgo World
+  "Virgo World",
+  "Never Left",
+  "When You Down",
+  "Moshpit",
+  "Take 10",
+  "Fallin",
+  "Dolly",
+  "Pressure",
+  "No Answer",
+  "Repeat It",
+  "Tattoo",
+  
+  // We Love You Tecca 2 (WLYT2)
+  "Sunny Days",
+  "Money On Me",
+  "Not A Game",
+  "Millionaire",
+  "Lot Of Me",
+  "500lbs",
+  "Heartbreaker",
+  "Chemistry",
+  "How I Want Ya",
+  "Both Of Em",
+  "Understand",
+  "Foreign",
+  
+  // Other/Singles
+  "Faster",
+  "Show Me Up",
+  "All Star",
+  "Out of Love",
+  "Ransom (Remix)",
+  "TEC",
+  "A Million",
+  "Bank Account"
+];
+
+// Lil Tecca album mapping
+// Image files in Supabase: wlyt.jpg, virgo.jpg, wlyt2.jpg, tecca.jpg
+const LILTECCA_ALBUM_COVERS = {
+  // We Love You Tecca (WLYT) - wlyt.jpg
+  "Ransom": "wlyt",
+  "Out Of Love": "wlyt",
+  "Love Me": "wlyt",
+  "Shots": "wlyt",
+  "Count Me Out": "wlyt",
+  "Did It Again": "wlyt",
+  "Royal Rage": "wlyt",
+  "Left Right": "wlyt",
+  "Sidenote": "wlyt",
+  "Amigo": "wlyt",
+  "Glocca Morra": "wlyt",
+  "200 My Baby": "wlyt",
+  "IDK": "wlyt",
+  "Bosses & Workers": "wlyt",
+  "Came In": "wlyt",
+  "Our Time": "wlyt",
+  
+  // Virgo World - virgo.jpg
+  "Virgo World": "virgo",
+  "Never Left": "virgo",
+  "When You Down": "virgo",
+  "Moshpit": "virgo",
+  "Take 10": "virgo",
+  "Fallin": "virgo",
+  "Dolly": "virgo",
+  "Pressure": "virgo",
+  "No Answer": "virgo",
+  "Repeat It": "virgo",
+  "Tattoo": "virgo",
+  
+  // We Love You Tecca 2 (WLYT2) - wlyt2.jpg
+  "Sunny Days": "wlyt2",
+  "Money On Me": "wlyt2",
+  "Not A Game": "wlyt2",
+  "Millionaire": "wlyt2",
+  "Lot Of Me": "wlyt2",
+  "500lbs": "wlyt2",
+  "Heartbreaker": "wlyt2",
+  "Chemistry": "wlyt2",
+  "How I Want Ya": "wlyt2",
+  "Both Of Em": "wlyt2",
+  "Understand": "wlyt2",
+  "Foreign": "wlyt2",
+  
+  // Other/Singles - tecca.jpg
+  "Faster": "tecca",
+  "Show Me Up": "tecca",
+  "All Star": "tecca",
+  "Out of Love": "tecca",
+  "Ransom (Remix)": "tecca",
+  "TEC": "tecca",
+  "A Million": "tecca",
+  "Bank Account": "tecca"
+};
+
 // Helper functions to get artist-specific data
 function getSongsForArtist(artist) {
     if (artist === 'jcole') {
@@ -1410,6 +1536,8 @@ function getSongsForArtist(artist) {
         return DRAKE_SONGS;
     } else if (artist === 'bbbm') {
         return BBBM_SONGS;
+    } else if (artist === 'liltecca') {
+        return LILTECCA_SONGS;
     }
     return SONGS;
 }
@@ -1421,8 +1549,33 @@ function getAlbumMapForArtist(artist) {
         return DRAKE_ALBUM_COVERS;
     } else if (artist === 'bbbm') {
         return BBBM_ALBUM_COVERS;
+    } else if (artist === 'liltecca') {
+        return LILTECCA_ALBUM_COVERS;
     }
     return ALBUM_COVERS;
+}
+
+// Helper function to construct audio file URL for a song
+// For Lil Tecca, songs are in album folders, so we need to include the folder path
+function getAudioUrl(songName) {
+    if (selectedArtist === 'liltecca') {
+        const albumMap = getAlbumMapForArtist('liltecca');
+        const albumCode = albumMap[songName] || 'tecca'; // Default to 'tecca' for other songs
+        
+        // Map album codes to folder names in Supabase
+        const folderMap = {
+            'wlyt': 'WLYT',
+            'virgo': 'Virgo World',
+            'wlyt2': 'WLYT2',
+            'tecca': 'Other' // Or root if singles are in root
+        };
+        
+        const folder = folderMap[albumCode] || 'Other';
+        // Construct URL with folder path: Lil Tecca/{folder}/{songName}.mp3
+        return `${SUPABASE_BASE}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+    }
+    // For other artists, use standard path
+    return `${SUPABASE_BASE}/${encodeURIComponent(songName)}.mp3`;
 }
 
 // ---------------------------
@@ -1680,7 +1833,7 @@ function updateProgressBar(mode, index, type, text) {
 
 // Helper function to get song duration for random mode
 async function getSongDuration(songName) {
-    const url = `${SUPABASE_BASE}/${encodeURIComponent(songName)}.mp3`;
+    const url = getAudioUrl(songName);
     return new Promise((resolve) => {
         const audio = new Audio(url);
         audio.addEventListener('loadedmetadata', () => {
@@ -1712,7 +1865,7 @@ document.getElementById("soloPlay").onclick = () => {
             }
         }
         
-        const url = `${SUPABASE_BASE}/${encodeURIComponent(soloState.currentSong)}.mp3`;
+        const url = getAudioUrl(soloState.currentSong);
         soloState.audio = new Audio(url);
         soloState.audio.currentTime = 0;
         
@@ -2175,7 +2328,7 @@ document.getElementById("speedPlay").onclick = () => {
     }
     
     const duration = DURATIONS[Math.min(speedState.skips, 5)];
-    const url = `${SUPABASE_BASE}/${encodeURIComponent(speedState.currentSong)}.mp3`;
+    const url = getAudioUrl(speedState.currentSong);
     
     speedState.audio = new Audio(url);
     speedState.audio.currentTime = speedState.startTime;
@@ -2754,7 +2907,7 @@ document.getElementById("h2hPlay").onclick = () => {
             }
         }
         
-        const url = `${SUPABASE_BASE}/${encodeURIComponent(h2hState.currentSong)}.mp3`;
+        const url = getAudioUrl(h2hState.currentSong);
         h2hState.audio = new Audio(url);
         h2hState.audio.currentTime = 0;
         

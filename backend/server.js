@@ -16,6 +16,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 import { jcoleSongs } from './jcole_songs.js';
 import { drakeSongs } from './drake_songs.js';
 import { bbbmSongs } from './bbbm_songs.js';
+import { lilteccaSongs } from './liltecca_songs.js';
 
 const travisSongs = [
   "16 Chapels",
@@ -103,6 +104,8 @@ function getSongsForArtist(artist) {
         return drakeSongs;
     } else if (artist === 'bbbm') {
         return bbbmSongs;
+    } else if (artist === 'liltecca') {
+        return lilteccaSongs;
     }
     return travisSongs;
 }
