@@ -2,7 +2,7 @@
 // Album names match the image files in Supabase albums bucket
 
 export const bbbmSongs = [
-  // Singles - EXACT filenames (without .mp3): Hey Its 21.mp3, Astagfurillah.mp3, Whats Happen Gonna Next.mp3, Free Mr Sandhu ft. Mr Nize.mp3
+  // Singles
   "Hey Its 21",
   "Astagfurillah",
   "Whats Happen Gonna Next",

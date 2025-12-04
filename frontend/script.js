@@ -1387,7 +1387,6 @@ const DRAKE_ALBUM_COVERS = {
 };
 
 // Big Black Banana Man songs list
-// EXACT filenames (without .mp3): Hey Its 21.mp3, Astagfurillah.mp3, Whats Happen Gonna Next.mp3, Free Mr Sandhu ft. Mr Nize.mp3
 const BBBM_SONGS = [
   "Hey Its 21",
   "Astagfurillah",
@@ -1899,7 +1898,8 @@ document.getElementById("soloGuess").onclick = () => {
         const strikeIndex = soloState.strikes;
         updateProgressBar('solo', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("soloStrikes").textContent = `${soloState.strikes}/6 strikes`;
-        document.getElementById("soloFeedback").textContent = `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`;
+        const tries = soloState.strikes + 1; // Tries = strikes (incorrect/skips) + 1 (successful guess)
+        document.getElementById("soloFeedback").textContent = `You guessed "${soloState.currentSong}" in ${tries} tries!`;
         document.getElementById("soloFeedback").className = "feedback correct";
         if (soloState.audio) {
             soloState.audio.pause();
@@ -1910,7 +1910,7 @@ document.getElementById("soloGuess").onclick = () => {
         saveGameStats(mode, true);
         saveGameHistory(mode, soloState.currentSong, soloState.strikes, true);
         // Show result modal
-        showSongResultModal(soloState.currentSong, `You guessed "${soloState.currentSong}" in ${soloState.strikes} tries!`, true);
+        showSongResultModal(soloState.currentSong, `You guessed "${soloState.currentSong}" in ${tries} tries!`, true);
         if (soloState.progressInterval) {
             clearInterval(soloState.progressInterval);
         }
@@ -2997,7 +2997,8 @@ socket.on("gameOver", data => {
                 message = `${data.winner} guessed "${songName}" in first`;
             } else {
                 // Opponent had fewer strikes
-                message = `${data.winner} guessed "${songName}" in ${data.winnerStrikes} guesses`;
+                const winnerTries = data.winnerStrikes !== undefined ? data.winnerStrikes + 1 : '?';
+                message = `${data.winner} guessed "${songName}" in ${winnerTries} tries`;
             }
             document.getElementById("h2hFeedback").className = "feedback correct";
             feedbackMessage = `Correct song: ${songName}`;
@@ -3027,12 +3028,13 @@ socket.on("gameOver", data => {
     }
     
     // Show result modal
+    const winnerTries = data.winnerStrikes !== undefined ? data.winnerStrikes + 1 : '?';
     const resultMessage = isWinner 
-        ? `You guessed "${songName}" in ${data.winnerStrikes || '?'} tries!`
+        ? `You guessed "${songName}" in ${winnerTries} tries!`
         : guessedCorrectly && data.winnerStrikes !== undefined
             ? (data.sameStrikes 
                 ? `${data.winner} guessed "${songName}" in first`
-                : `${data.winner} guessed "${songName}" in ${data.winnerStrikes} guesses`)
+                : `${data.winner} guessed "${songName}" in ${winnerTries} tries`)
             : `Incorrect! The song was: ${songName}`;
     
     showSongResultModal(songName, resultMessage, guessedCorrectly || isWinner);
