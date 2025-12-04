@@ -13,6 +13,9 @@ function updateSupabaseBase(artist) {
     } else if (artist === 'drake') {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
         window.SUPABASE_BASE = SUPABASE_BASE;
+    } else if (artist === 'bbbm') {
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/BBBM";
+        window.SUPABASE_BASE = SUPABASE_BASE;
     } else {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
         window.SUPABASE_BASE = SUPABASE_BASE;
@@ -29,7 +32,7 @@ if (savedArtist) {
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'jcole', or 'drake'
+let selectedArtist = null; // 'travis', 'jcole', 'drake', or 'bbbm'
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -103,6 +106,8 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "J. Cole Heardle";
     } else if (selectedArtist === 'drake') {
         document.querySelector("#home h1").textContent = "Drake Heardle";
+    } else if (selectedArtist === 'bbbm') {
+        document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
     } else {
         document.querySelector("#home h1").textContent = "Travis Scott Heardle";
     }
@@ -265,6 +270,10 @@ document.getElementById("jcoleSelectBtn").onclick = () => {
 
 document.getElementById("drakeSelectBtn").onclick = () => {
     selectArtist('drake');
+};
+
+document.getElementById("bbbmSelectBtn").onclick = () => {
+    selectArtist('bbbm');
 };
 
 // Helper function to ensure selectedArtist is initialized from localStorage
@@ -1377,12 +1386,30 @@ const DRAKE_ALBUM_COVERS = {
   "With You ft. PARTYNEXTDOOR": "views"
 };
 
+// Big Black Banana Man songs list
+const BBBM_SONGS = [
+  "Song 1",
+  "Song 2",
+  "Song 3",
+  "Song 4"
+];
+
+// Big Black Banana Man album mapping
+const BBBM_ALBUM_COVERS = {
+  "Song 1": "21",
+  "Song 2": "ast",
+  "Song 3": "whgn",
+  "Song 4": "sandhu"
+};
+
 // Helper functions to get artist-specific data
 function getSongsForArtist(artist) {
     if (artist === 'jcole') {
         return JCOLE_SONGS;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
+    } else if (artist === 'bbbm') {
+        return BBBM_SONGS;
     }
     return SONGS;
 }
@@ -1392,6 +1419,8 @@ function getAlbumMapForArtist(artist) {
         return JCOLE_ALBUM_COVERS;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
+    } else if (artist === 'bbbm') {
+        return BBBM_ALBUM_COVERS;
     }
     return ALBUM_COVERS;
 }
@@ -1769,12 +1798,13 @@ document.getElementById("soloPlay").onclick = () => {
 };
 
 document.getElementById("soloSkip").onclick = () => {
-    if (soloState.guessed || soloState.strikes >= 6) return;
-    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
-    if (soloState.skips >= 5 || soloState.strikes >= 5) {
+    // Don't allow skip if we have 5 or more strikes (6th strike must be incorrect guess)
+    // This check must be first - if strikes >= 5, skip button should not work
+    if (soloState.strikes >= 5) {
         document.getElementById("soloSkip").disabled = true;
         return;
     }
+    if (soloState.guessed || soloState.strikes >= 6) return;
     
     soloState.skips++;
     soloState.strikes++;
@@ -2179,12 +2209,12 @@ document.getElementById("speedPlay").onclick = () => {
 };
 
 document.getElementById("speedSkip").onclick = () => {
-    if (speedState.gameOver || speedState.guessed || speedState.strikes >= 6) return;
-    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
+    // Don't allow skip if we have 5 strikes (6th strike must be incorrect guess)
     if (speedState.strikes >= 5) {
         document.getElementById("speedSkip").disabled = true;
         return;
     }
+    if (speedState.gameOver || speedState.guessed || speedState.strikes >= 6) return;
     
     if (speedState.audio) {
         speedState.audio.pause();
@@ -2772,12 +2802,12 @@ document.getElementById("h2hPlay").onclick = () => {
 };
 
 document.getElementById("h2hSkip").onclick = () => {
-    if (h2hState.guessed || !h2hState.currentSong || h2hState.strikes >= 6 || !h2hState.gameStarted || h2hState.roundFinished) return;
-    // Don't allow skip if it would be the 6th strike (6th strike must be incorrect guess)
-    if (h2hState.skips >= 5 || h2hState.strikes >= 5) {
+    // Don't allow skip if we have 5 strikes (6th strike must be incorrect guess)
+    if (h2hState.strikes >= 5) {
         document.getElementById("h2hSkip").disabled = true;
         return;
     }
+    if (h2hState.guessed || !h2hState.currentSong || h2hState.strikes >= 6 || !h2hState.gameStarted || h2hState.roundFinished) return;
     
     h2hState.skips++;
     h2hState.strikes++;
