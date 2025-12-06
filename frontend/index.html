@@ -40,9 +40,9 @@
                 <h2>Travis Scott</h2>
                 <button class="artist-btn" id="travisSelectBtn">Select</button>
             </div>
-            <div class="artist-option" id="allRappersOption">
-                <h2>All Rappers</h2>
-                <button class="artist-btn" id="allRappersSelectBtn">Select</button>
+            <div class="artist-option" id="chooseRappersOption">
+                <h2>Choose Rappers</h2>
+                <button class="artist-btn" id="chooseRappersSelectBtn">Select</button>
             </div>
             <div class="artist-option" id="drakeOption">
                 <h2>Drake</h2>
@@ -56,6 +56,32 @@
                 <h2>Lil Tecca</h2>
                 <button class="artist-btn" id="lilteccaSelectBtn">Select</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHOOSE RAPPERS PAGE -->
+<div id="chooseRappers" style="display:none;">
+    <div class="choose-rappers-container">
+        <h1>Choose Rappers</h1>
+        <p>Select which rappers you want to include:</p>
+        <div class="rapper-checkboxes">
+            <label class="rapper-checkbox">
+                <input type="checkbox" id="travisCheckbox" checked>
+                <span>Travis Scott</span>
+            </label>
+            <label class="rapper-checkbox">
+                <input type="checkbox" id="drakeCheckbox" checked>
+                <span>Drake</span>
+            </label>
+            <label class="rapper-checkbox">
+                <input type="checkbox" id="lilteccaCheckbox" checked>
+                <span>Lil Tecca</span>
+            </label>
+        </div>
+        <div class="choose-rappers-actions">
+            <button id="confirmRappersBtn" class="artist-btn">Confirm</button>
+            <button id="cancelRappersBtn" class="link-btn">Cancel</button>
         </div>
     </div>
 </div>

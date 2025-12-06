@@ -16,8 +16,8 @@ function updateSupabaseBase(artist) {
     } else if (artist === 'liltecca') {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/" + encodeURIComponent("Lil Tecca");
         window.SUPABASE_BASE = SUPABASE_BASE;
-    } else if (artist === 'allrappers') {
-        // All rappers mode uses multiple sources, default to travis
+    } else if (artist === 'chooserappers') {
+        // Choose rappers mode uses multiple sources, default to travis
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else {
@@ -36,7 +36,8 @@ if (savedArtist) {
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', or 'allrappers'
+let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', or 'chooserappers'
+let selectedRappers = ['travis', 'drake', 'liltecca']; // Array of selected rappers for 'chooserappers' mode
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -47,6 +48,16 @@ function initAuth() {
     // Set selectedArtist from localStorage if it exists (for initialization)
     if (savedArtist) {
         selectedArtist = savedArtist;
+        if (savedArtist === 'chooserappers') {
+            const savedRappers = localStorage.getItem('selectedRappers');
+            if (savedRappers) {
+                try {
+                    selectedRappers = JSON.parse(savedRappers);
+                } catch (e) {
+                    selectedRappers = ['travis', 'drake', 'liltecca'];
+                }
+            }
+        }
         updateSupabaseBase(savedArtist);
     }
     
@@ -73,6 +84,7 @@ function initAuth() {
 function showLoginPage() {
     document.getElementById("loginPage").style.display = "block";
     document.getElementById("artistSelection").style.display = "none";
+    document.getElementById("chooseRappers").style.display = "none";
     document.getElementById("home").style.display = "none";
     document.getElementById("soloGame").style.display = "none";
     document.getElementById("h2hMenu").style.display = "none";
@@ -85,6 +97,7 @@ function showLoginPage() {
 function showArtistSelection() {
     document.getElementById("loginPage").style.display = "none";
     document.getElementById("artistSelection").style.display = "block";
+    document.getElementById("chooseRappers").style.display = "none";
     document.getElementById("home").style.display = "none";
     document.getElementById("soloGame").style.display = "none";
     document.getElementById("h2hMenu").style.display = "none";
@@ -94,9 +107,38 @@ function showArtistSelection() {
     document.getElementById("speedLeaderboard").style.display = "none";
 }
 
+function showChooseRappersPage() {
+    document.getElementById("loginPage").style.display = "none";
+    document.getElementById("artistSelection").style.display = "none";
+    document.getElementById("chooseRappers").style.display = "block";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("soloGame").style.display = "none";
+    document.getElementById("h2hMenu").style.display = "none";
+    document.getElementById("h2hGame").style.display = "none";
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedLeaderboard").style.display = "none";
+    
+    // Load saved rappers or default to all checked
+    const savedRappers = localStorage.getItem('selectedRappers');
+    if (savedRappers) {
+        try {
+            selectedRappers = JSON.parse(savedRappers);
+        } catch (e) {
+            selectedRappers = ['travis', 'drake', 'liltecca'];
+        }
+    }
+    
+    // Update checkboxes
+    document.getElementById("travisCheckbox").checked = selectedRappers.includes('travis');
+    document.getElementById("drakeCheckbox").checked = selectedRappers.includes('drake');
+    document.getElementById("lilteccaCheckbox").checked = selectedRappers.includes('liltecca');
+}
+
 function showHomePage() {
     document.getElementById("loginPage").style.display = "none";
     document.getElementById("artistSelection").style.display = "none";
+    document.getElementById("chooseRappers").style.display = "none";
     document.getElementById("home").style.display = "block";
     document.getElementById("soloGame").style.display = "none";
     document.getElementById("h2hMenu").style.display = "none";
@@ -112,8 +154,14 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
     } else if (selectedArtist === 'liltecca') {
         document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
-    } else if (selectedArtist === 'allrappers') {
-        document.querySelector("#home h1").textContent = "All Rappers Heardle";
+    } else if (selectedArtist === 'chooserappers') {
+        const rapperNames = selectedRappers.map(r => {
+            if (r === 'travis') return 'Travis Scott';
+            if (r === 'drake') return 'Drake';
+            if (r === 'liltecca') return 'Lil Tecca';
+            return r;
+        }).join(' & ');
+        document.querySelector("#home h1").textContent = `${rapperNames} Heardle`;
     } else {
         document.querySelector("#home h1").textContent = "Travis Scott Heardle";
     }
@@ -270,8 +318,8 @@ document.getElementById("travisSelectBtn").onclick = () => {
     selectArtist('travis');
 };
 
-document.getElementById("allRappersSelectBtn").onclick = () => {
-    selectArtist('allrappers');
+document.getElementById("chooseRappersSelectBtn").onclick = () => {
+    showChooseRappersPage();
 };
 
 document.getElementById("drakeSelectBtn").onclick = () => {
@@ -284,6 +332,39 @@ document.getElementById("bbbmSelectBtn").onclick = () => {
 
 document.getElementById("lilteccaSelectBtn").onclick = () => {
     selectArtist('liltecca');
+};
+
+// Choose Rappers handlers
+document.getElementById("confirmRappersBtn").onclick = () => {
+    // Get selected rappers from checkboxes
+    const rappers = [];
+    if (document.getElementById("travisCheckbox").checked) {
+        rappers.push('travis');
+    }
+    if (document.getElementById("drakeCheckbox").checked) {
+        rappers.push('drake');
+    }
+    if (document.getElementById("lilteccaCheckbox").checked) {
+        rappers.push('liltecca');
+    }
+    
+    // Must select at least one
+    if (rappers.length === 0) {
+        alert("Please select at least one rapper!");
+        return;
+    }
+    
+    selectedRappers = rappers;
+    selectedArtist = 'chooserappers';
+    localStorage.setItem('selectedArtist', 'chooserappers');
+    localStorage.setItem('selectedRappers', JSON.stringify(selectedRappers));
+    
+    updateSupabaseBase('chooserappers');
+    showHomePage();
+};
+
+document.getElementById("cancelRappersBtn").onclick = () => {
+    showArtistSelection();
 };
 
 // Helper function to ensure selectedArtist is initialized from localStorage
@@ -1123,8 +1204,19 @@ function selectArtistForSong(songName) {
 
 // Helper functions to get artist-specific data
 function getSongsForArtist(artist) {
-    if (artist === 'allrappers') {
-        return ALL_RAPPERS_SONGS;
+    if (artist === 'chooserappers') {
+        // Combine songs from selected rappers only
+        const songs = [];
+        if (selectedRappers.includes('travis')) {
+            songs.push(...SONGS);
+        }
+        if (selectedRappers.includes('drake')) {
+            songs.push(...DRAKE_SONGS);
+        }
+        if (selectedRappers.includes('liltecca')) {
+            songs.push(...LILTECCA_SONGS);
+        }
+        return songs;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
     } else if (artist === 'bbbm') {
@@ -1136,8 +1228,19 @@ function getSongsForArtist(artist) {
 }
 
 function getAlbumMapForArtist(artist) {
-    if (artist === 'allrappers') {
-        return ALL_RAPPERS_ALBUM_COVERS;
+    if (artist === 'chooserappers') {
+        // Combine album covers from selected rappers only
+        const covers = {};
+        if (selectedRappers.includes('travis')) {
+            Object.assign(covers, ALBUM_COVERS);
+        }
+        if (selectedRappers.includes('drake')) {
+            Object.assign(covers, DRAKE_ALBUM_COVERS);
+        }
+        if (selectedRappers.includes('liltecca')) {
+            Object.assign(covers, LILTECCA_ALBUM_COVERS);
+        }
+        return covers;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
     } else if (artist === 'bbbm') {
@@ -1155,11 +1258,18 @@ function getAudioUrl(songName, songArtist = null) {
     // Determine which artist to use for this song
     let artistToUse = songArtist;
     
-    // In "all rappers" mode, determine which artist the song belongs to
-    if (selectedArtist === 'allrappers') {
+    // In "choose rappers" mode, determine which artist the song belongs to
+    if (selectedArtist === 'chooserappers') {
         if (!artistToUse) {
             // If not provided, determine it (should be provided from state, but fallback)
-            artistToUse = selectArtistForSong(songName);
+            // Only check selected rappers
+            const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+            if (artists.length > 0) {
+                artistToUse = artists[Math.floor(Math.random() * artists.length)];
+            } else {
+                // Fallback to first selected rapper if song not found
+                artistToUse = selectedRappers[0] || 'travis';
+            }
         }
     } else {
         // Use the selected artist
@@ -1168,6 +1278,11 @@ function getAudioUrl(songName, songArtist = null) {
     
     // Construct URL based on the artist
     if (artistToUse === 'liltecca') {
+        // Always construct the base URL for Lil Tecca bucket to ensure consistency
+        const bucketName = encodeURIComponent("Lil Tecca");
+        const baseUrl = `https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/${bucketName}`;
+        
+        // Get folder structure
         const albumMap = getAlbumMapForArtist('liltecca');
         const albumCode = albumMap[songName] || 'tecca';
         const folderMap = {
@@ -1177,8 +1292,11 @@ function getAudioUrl(songName, songArtist = null) {
             'tecca': 'Other'
         };
         const folder = folderMap[albumCode] || 'Other';
-        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/" + encodeURIComponent("Lil Tecca");
-        return `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+        
+        // Construct URL: bucket/folder/song.mp3
+        const url = `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+        console.log('Lil Tecca URL:', url); // Debug log
+        return url;
     } else if (artistToUse === 'drake') {
         const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
         return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
@@ -1335,10 +1453,15 @@ async function startSoloGame() {
     const songs = getSongsForArtist(selectedArtist || 'travis');
     const songName = songs[Math.floor(Math.random() * songs.length)];
     
-    // In "all rappers" mode, determine which artist this song belongs to
+    // In "choose rappers" mode, determine which artist this song belongs to
     let songArtist = null;
-    if (selectedArtist === 'allrappers') {
-        songArtist = selectArtistForSong(songName);
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            songArtist = selectedRappers[0] || 'travis';
+        }
     }
     
     let startTime = 0;
@@ -1788,10 +1911,15 @@ async function startSpeedRound() {
     const songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
     speedState.songsPlayed.push(songName);
     
-    // In "all rappers" mode, determine which artist this song belongs to
+    // In "choose rappers" mode, determine which artist this song belongs to
     let songArtist = null;
-    if (selectedArtist === 'allrappers') {
-        songArtist = selectArtistForSong(songName);
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            songArtist = selectedRappers[0] || 'travis';
+        }
     }
     
     speedState.currentSong = songName;
@@ -2348,9 +2476,14 @@ document.getElementById("create").onclick = () => {
 socket.on("lobbyCreated", data => {
     h2hState.lobbyId = data.lobbyId;
     h2hState.currentSong = data.song;
-    // In "all rappers" mode, determine which artist this song belongs to
-    if (selectedArtist === 'allrappers') {
-        h2hState.songArtist = selectArtistForSong(data.song);
+    // In "choose rappers" mode, determine which artist this song belongs to
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(data.song).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            h2hState.songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            h2hState.songArtist = selectedRappers[0] || 'travis';
+        }
     } else {
         h2hState.songArtist = null;
     }
@@ -2429,9 +2562,14 @@ socket.on("gameStart", data => {
     h2hGame.style.display = "block";
     
     h2hState.currentSong = data.song;
-    // In "all rappers" mode, determine which artist this song belongs to
-    if (selectedArtist === 'allrappers') {
-        h2hState.songArtist = selectArtistForSong(data.song);
+    // In "choose rappers" mode, determine which artist this song belongs to
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(data.song).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            h2hState.songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            h2hState.songArtist = selectedRappers[0] || 'travis';
+        }
     } else {
         h2hState.songArtist = null;
     }

@@ -96,9 +96,11 @@ const travisSongs = [
 ];
 
 // Helper function to get songs based on artist
+// For 'chooserappers', the frontend handles the selection, so we return all songs
 function getSongsForArtist(artist) {
-    if (artist === 'allrappers') {
+    if (artist === 'chooserappers' || artist === 'allrappers') {
         // Combine Drake, Travis Scott, and Lil Tecca songs
+        // Frontend will filter based on selected rappers
         return [...travisSongs, ...drakeSongs, ...lilteccaSongs];
     } else if (artist === 'drake') {
         return drakeSongs;
