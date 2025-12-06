@@ -1093,6 +1093,34 @@ const ALL_RAPPERS_ALBUM_COVERS = {
   ...LILTECCA_ALBUM_COVERS
 };
 
+// Helper function to determine which artist(s) a song belongs to
+// Returns an array of artist names that have this song
+function getArtistsForSong(songName) {
+    const artists = [];
+    if (SONGS.includes(songName)) {
+        artists.push('travis');
+    }
+    if (DRAKE_SONGS.includes(songName)) {
+        artists.push('drake');
+    }
+    if (LILTECCA_SONGS.includes(songName)) {
+        artists.push('liltecca');
+    }
+    return artists;
+}
+
+// Helper function to randomly select an artist for a song in "all rappers" mode
+// If song is in multiple lists, randomly picks one
+function selectArtistForSong(songName) {
+    const artists = getArtistsForSong(songName);
+    if (artists.length === 0) {
+        // Default to travis if not found (shouldn't happen)
+        return 'travis';
+    }
+    // Randomly select one if multiple artists have this song
+    return artists[Math.floor(Math.random() * artists.length)];
+}
+
 // Helper functions to get artist-specific data
 function getSongsForArtist(artist) {
     if (artist === 'allrappers') {
@@ -1122,49 +1150,44 @@ function getAlbumMapForArtist(artist) {
 
 // Helper function to construct audio file URL for a song
 // For Lil Tecca, songs are in album folders, so we need to include the folder path
-function getAudioUrl(songName) {
+// songArtist is optional - if provided, use it; otherwise determine from song name
+function getAudioUrl(songName, songArtist = null) {
+    // Determine which artist to use for this song
+    let artistToUse = songArtist;
+    
     // In "all rappers" mode, determine which artist the song belongs to
     if (selectedArtist === 'allrappers') {
-        // Check which artist's song list contains this song
-        if (LILTECCA_SONGS.includes(songName)) {
-            // It's a Lil Tecca song
-            const albumMap = getAlbumMapForArtist('liltecca');
-            const albumCode = albumMap[songName] || 'tecca';
-            const folderMap = {
-                'wlyt': 'WLYT',
-                'virgo': 'Virgo World',
-                'wlyt2': 'WLYT2',
-                'tecca': 'Other'
-            };
-            const folder = folderMap[albumCode] || 'Other';
-            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
-            return `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
-        } else if (DRAKE_SONGS.includes(songName)) {
-            // It's a Drake song
-            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
-            return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
-        } else {
-            // It's a Travis Scott song (default)
-            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-            return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
+        if (!artistToUse) {
+            // If not provided, determine it (should be provided from state, but fallback)
+            artistToUse = selectArtistForSong(songName);
         }
-    } else if (selectedArtist === 'liltecca') {
+    } else {
+        // Use the selected artist
+        artistToUse = selectedArtist;
+    }
+    
+    // Construct URL based on the artist
+    if (artistToUse === 'liltecca') {
         const albumMap = getAlbumMapForArtist('liltecca');
-        const albumCode = albumMap[songName] || 'tecca'; // Default to 'tecca' for other songs
-        
-        // Map album codes to folder names in Supabase
+        const albumCode = albumMap[songName] || 'tecca';
         const folderMap = {
             'wlyt': 'WLYT',
             'virgo': 'Virgo World',
             'wlyt2': 'WLYT2',
-            'tecca': 'Other' // Or root if singles are in root
+            'tecca': 'Other'
         };
-        
         const folder = folderMap[albumCode] || 'Other';
-        // Construct URL with folder path: Lil Tecca/{folder}/{songName}.mp3
-        return `${SUPABASE_BASE}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+        return `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+    } else if (artistToUse === 'drake') {
+        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+        return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
+    } else if (artistToUse === 'travis' || !artistToUse) {
+        // Default to travis
+        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+        return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
     }
-    // For other artists, use standard path
+    // For other artists, use standard path with SUPABASE_BASE
     return `${SUPABASE_BASE}/${encodeURIComponent(songName)}.mp3`;
 }
 
@@ -1311,24 +1334,32 @@ async function startSoloGame() {
     ensureArtistSelected();
     const songs = getSongsForArtist(selectedArtist || 'travis');
     const songName = songs[Math.floor(Math.random() * songs.length)];
+    
+    // In "all rappers" mode, determine which artist this song belongs to
+    let songArtist = null;
+    if (selectedArtist === 'allrappers') {
+        songArtist = selectArtistForSong(songName);
+    }
+    
     let startTime = 0;
     
     if (gameMode === 'random') {
         // Get song duration and calculate random start (0 to duration-40)
-        const duration = await getSongDuration(songName);
+        const duration = await getSongDuration(songName, songArtist);
         const maxStart = Math.max(0, duration - 40);
         startTime = parseFloat((Math.random() * maxStart).toFixed(2));
     }
     
     soloState = {
         currentSong: songName,
+        songArtist: songArtist, // Store which artist this song belongs to
         skips: 0,
         startTime: startTime,
         audio: null,
         guessed: false,
         strikes: 0,
         progressBars: [],
-        songDuration: await getSongDuration(songName),
+        songDuration: await getSongDuration(songName, songArtist),
         progressInterval: null
     };
     
@@ -1422,8 +1453,8 @@ function updateProgressBar(mode, index, type, text) {
 }
 
 // Helper function to get song duration for random mode
-async function getSongDuration(songName) {
-    const url = getAudioUrl(songName);
+async function getSongDuration(songName, songArtist = null) {
+    const url = getAudioUrl(songName, songArtist);
     return new Promise((resolve) => {
         const audio = new Audio(url);
         audio.addEventListener('loadedmetadata', () => {
@@ -1455,7 +1486,7 @@ document.getElementById("soloPlay").onclick = () => {
             }
         }
         
-        const url = getAudioUrl(soloState.currentSong);
+        const url = getAudioUrl(soloState.currentSong, soloState.songArtist);
         soloState.audio = new Audio(url);
         soloState.audio.currentTime = 0;
         
@@ -1501,7 +1532,7 @@ document.getElementById("soloPlay").onclick = () => {
     }
     
     const duration = DURATIONS[Math.min(soloState.skips, 5)];
-    const url = `${SUPABASE_BASE}/${encodeURIComponent(soloState.currentSong)}.mp3`;
+    const url = getAudioUrl(soloState.currentSong, soloState.songArtist);
     
     soloState.audio = new Audio(url);
     soloState.audio.currentTime = soloState.startTime;
@@ -1757,7 +1788,14 @@ async function startSpeedRound() {
     const songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
     speedState.songsPlayed.push(songName);
     
+    // In "all rappers" mode, determine which artist this song belongs to
+    let songArtist = null;
+    if (selectedArtist === 'allrappers') {
+        songArtist = selectArtistForSong(songName);
+    }
+    
     speedState.currentSong = songName;
+    speedState.songArtist = songArtist; // Store which artist this song belongs to
     speedState.skips = 0;
     speedState.strikes = 0;
     speedState.guessed = false;
@@ -1785,7 +1823,7 @@ async function startSpeedRound() {
     document.getElementById("speedGuess").disabled = false;
     document.getElementById("speedGuessInput").disabled = false;
     
-    speedState.songDuration = await getSongDuration(songName);
+    speedState.songDuration = await getSongDuration(songName, songArtist);
 }
 
 function startSpeedTimer() {
@@ -1918,7 +1956,7 @@ document.getElementById("speedPlay").onclick = () => {
     }
     
     const duration = DURATIONS[Math.min(speedState.skips, 5)];
-    const url = getAudioUrl(speedState.currentSong);
+    const url = getAudioUrl(speedState.currentSong, speedState.songArtist);
     
     speedState.audio = new Audio(url);
     speedState.audio.currentTime = speedState.startTime;
@@ -2310,6 +2348,12 @@ document.getElementById("create").onclick = () => {
 socket.on("lobbyCreated", data => {
     h2hState.lobbyId = data.lobbyId;
     h2hState.currentSong = data.song;
+    // In "all rappers" mode, determine which artist this song belongs to
+    if (selectedArtist === 'allrappers') {
+        h2hState.songArtist = selectArtistForSong(data.song);
+    } else {
+        h2hState.songArtist = null;
+    }
     h2hState.startTime = data.startTime;
     h2hState.skips = 0;
     h2hState.strikes = 0;
@@ -2385,6 +2429,12 @@ socket.on("gameStart", data => {
     h2hGame.style.display = "block";
     
     h2hState.currentSong = data.song;
+    // In "all rappers" mode, determine which artist this song belongs to
+    if (selectedArtist === 'allrappers') {
+        h2hState.songArtist = selectArtistForSong(data.song);
+    } else {
+        h2hState.songArtist = null;
+    }
     h2hState.startTime = data.startTime;
     h2hState.gameMode = data.gameMode || 'regular';
     h2hState.skips = 0;
@@ -2436,7 +2486,12 @@ socket.on("gameStart", data => {
     }
     
     // Get song duration for progress bar
-    getSongDuration(data.song).then(duration => {
+    // Determine song artist for duration calculation
+    let songArtist = null;
+    if (selectedArtist === 'allrappers') {
+        songArtist = selectArtistForSong(data.song);
+    }
+    getSongDuration(data.song, songArtist).then(duration => {
         h2hState.songDuration = duration;
     });
     
@@ -2497,7 +2552,7 @@ document.getElementById("h2hPlay").onclick = () => {
             }
         }
         
-        const url = getAudioUrl(h2hState.currentSong);
+        const url = getAudioUrl(h2hState.currentSong, h2hState.songArtist);
         h2hState.audio = new Audio(url);
         h2hState.audio.currentTime = 0;
         
@@ -2528,7 +2583,7 @@ document.getElementById("h2hPlay").onclick = () => {
     }
     
     const duration = DURATIONS[Math.min(h2hState.skips, 5)];
-    const url = `${SUPABASE_BASE}/${encodeURIComponent(h2hState.currentSong)}.mp3`;
+    const url = getAudioUrl(h2hState.currentSong, h2hState.songArtist);
     
     h2hState.audio = new Audio(url);
     h2hState.audio.currentTime = h2hState.startTime;
