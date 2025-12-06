@@ -14,7 +14,7 @@ function updateSupabaseBase(artist) {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/BBBM";
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else if (artist === 'liltecca') {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/" + encodeURIComponent("Lil Tecca");
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else if (artist === 'allrappers') {
         // All rappers mode uses multiple sources, default to travis
@@ -1177,7 +1177,7 @@ function getAudioUrl(songName, songArtist = null) {
             'tecca': 'Other'
         };
         const folder = folderMap[albumCode] || 'Other';
-        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/" + encodeURIComponent("Lil Tecca");
         return `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
     } else if (artistToUse === 'drake') {
         const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
