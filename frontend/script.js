@@ -7,10 +7,7 @@ const BACKEND_URL = "https://travis-heardle.onrender.com";
 
 // Helper function to update SUPABASE_BASE based on artist
 function updateSupabaseBase(artist) {
-    if (artist === 'jcole') {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/JCole";
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    } else if (artist === 'drake') {
+    if (artist === 'drake') {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else if (artist === 'bbbm') {
@@ -18,6 +15,10 @@ function updateSupabaseBase(artist) {
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else if (artist === 'liltecca') {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+        window.SUPABASE_BASE = SUPABASE_BASE;
+    } else if (artist === 'allrappers') {
+        // All rappers mode uses multiple sources, default to travis
+        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
         window.SUPABASE_BASE = SUPABASE_BASE;
     } else {
         SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
@@ -35,7 +36,7 @@ if (savedArtist) {
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'jcole', 'drake', 'bbbm', or 'liltecca'
+let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', or 'allrappers'
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -105,14 +106,14 @@ function showHomePage() {
     document.getElementById("speedLeaderboard").style.display = "none";
     
     // Update title based on selected artist
-    if (selectedArtist === 'jcole') {
-        document.querySelector("#home h1").textContent = "J. Cole Heardle";
-    } else if (selectedArtist === 'drake') {
+    if (selectedArtist === 'drake') {
         document.querySelector("#home h1").textContent = "Drake Heardle";
     } else if (selectedArtist === 'bbbm') {
         document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
     } else if (selectedArtist === 'liltecca') {
         document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
+    } else if (selectedArtist === 'allrappers') {
+        document.querySelector("#home h1").textContent = "All Rappers Heardle";
     } else {
         document.querySelector("#home h1").textContent = "Travis Scott Heardle";
     }
@@ -269,8 +270,8 @@ document.getElementById("travisSelectBtn").onclick = () => {
     selectArtist('travis');
 };
 
-document.getElementById("jcoleSelectBtn").onclick = () => {
-    selectArtist('jcole');
+document.getElementById("allRappersSelectBtn").onclick = () => {
+    selectArtist('allrappers');
 };
 
 document.getElementById("drakeSelectBtn").onclick = () => {
@@ -521,247 +522,6 @@ const SONGS = [
     "the ends","The Prayer","THE SCOTTS","through the late night","TIL FURTHER NOTICE","TOPIA TWINS","Trance","Upper Echelon",
     "Uptown","WAKE UP","Watch","way back","WHO? WHAT!","wonderful","YOSEMITE","Zombies"
   ];
-
-// J. Cole songs list
-const JCOLE_SONGS = [
-  // 2014 Forest Hills Drive
-  "January 28th",
-  "Wet Dreamz",
-  "03' Adolescence",
-  "A Tale of 2 Citiez",
-  "Fire Squad",
-  "St. Tropez",
-  "G.O.M.D.",
-  "No Role Modelz",
-  "Hello",
-  "Apparently",
-  "Love Yourz",
-  "Note to Self",
-  
-  // 4 Your Eyez Only
-  "For Whom the Bell Tolls",
-  "Immortal",
-  "Deja Vu",
-  "Ville Mentality",
-  "She's Mine Pt. 1",
-  "Change",
-  "Neighbors",
-  "Foldin Clothes",
-  "She's Mine Pt. 2",
-  "4 Your Eyez Only",
-  
-  // Born Sinner
-  "Villuminati",
-  "Kerney Sermon (Skit)",
-  "LAnd of the Snakes",
-  "Power Trip (feat. Miguel)",
-  "Mo Money (Interlude)",
-  "Trouble",
-  "Runaway",
-  "She Knows (feat. Amber Coffman & Cults)",
-  "Rich Niggaz",
-  "Where's Jermaine (Skit)",
-  "Forbidden Fruit (feat. Kendrick Lamar)",
-  "Chaining Day",
-  "Ain't That Some Shit (Interlude)",
-  "Crooked Smile (feat. TLC)",
-  "Let Nas Down",
-  "Born Sinner (feat. @Fauntleroy)",
-  "Miss America",
-  "New York Times (feat. 50 Cent & Bas)",
-  "Is She Gon Pop",
-  "Niggaz Know",
-  "Sparks Will Fly (feat. Jhene Aiko)",
-  
-  // Cole World: The Sideline Story
-  "Dollar and a Dream III",
-  "Can't Get Enough (feat. Trey Songz)",
-  "Lights Please",
-  "Interlude",
-  "Sideline Story",
-  "Mr. Nice Watch (feat. Jay-Z)",
-  "Cole World",
-  "In the Morning (feat. Drake)",
-  "Lost Ones",
-  "Nobody's Perfect (feat. Missy Elliott)",
-  "Never Told",
-  "Rise & Shine",
-  "God's Gift",
-  "Breakdown",
-  "Work Out",
-  "Who Dat",
-  "Daddy's Little Girl",
-  
-  // Friday Night Lights
-  "Friday Night Lights (Intro)",
-  "Too Deep for the Intro",
-  "Before I'm Gone",
-  "Back to the Topic (Freestyle)",
-  "You Got It (feat. Wale)",
-  "Villematic",
-  "Enchanted (feat. Wale)",
-  "Blow Up",
-  "Higher",
-  "In the Morning (feat. Drake)",
-  "2Face",
-  "The Autograph",
-  "Best Friend",
-  "Cost Me a Lot",
-  "Premeditated Murder",
-  "Home for the Holidays",
-  "Love Me Not",
-  "See World",
-  "Farewell",
-  "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)",
-  
-  // KOD
-  "KOD",
-  "Photograph",
-  "The Cut Off (feat. kiLL edward)",
-  "ATM",
-  "Motiv8",
-  "Kevins Heart",
-  "BRACKETS",
-  "Once an Addict (Interlude)",
-  "FRIENDS (feat. kiLL edward)",
-  "Window Pain (Outro)",
-  "1985 (Intro to The Fall Off)",
-  
-  // Truly Yours Vol. 1
-  "Can I Holla At Ya",
-  "Crunch Time",
-  "Rise Above",
-  "Tears for ODB",
-  "Stay (2009)",
-  
-  // Truly Yours, Vol. 2
-  "Cole Summer",
-  "Kenny Lofton (feat. Young Jeezy)",
-  "Chris Tucker (feat. 2 Chainz)",
-  "Head Bussa",
-  "Cousins (feat. Bas)",
-  "3 Wishes"
-];
-
-// J. Cole album mapping
-const JCOLE_ALBUM_COVERS = {
-  // 2014 Forest Hills Drive
-  "January 28th": "foresthills",
-  "Wet Dreamz": "foresthills",
-  "03' Adolescence": "foresthills",
-  "A Tale of 2 Citiez": "foresthills",
-  "Fire Squad": "foresthills",
-  "St. Tropez": "foresthills",
-  "G.O.M.D.": "foresthills",
-  "No Role Modelz": "foresthills",
-  "Hello": "foresthills",
-  "Apparently": "foresthills",
-  "Love Yourz": "foresthills",
-  "Note to Self": "foresthills",
-  
-  // 4 Your Eyez Only
-  "For Whom the Bell Tolls": "foureyez",
-  "Immortal": "foureyez",
-  "Deja Vu": "foureyez",
-  "Ville Mentality": "foureyez",
-  "She's Mine Pt. 1": "foureyez",
-  "Change": "foureyez",
-  "Neighbors": "foureyez",
-  "Foldin Clothes": "foureyez",
-  "She's Mine Pt. 2": "foureyez",
-  "4 Your Eyez Only": "foureyez",
-  
-  // Born Sinner
-  "Villuminati": "bornsinner",
-  "Kerney Sermon (Skit)": "bornsinner",
-  "LAnd of the Snakes": "bornsinner",
-  "Power Trip (feat. Miguel)": "bornsinner",
-  "Mo Money (Interlude)": "bornsinner",
-  "Trouble": "bornsinner",
-  "Runaway": "bornsinner",
-  "She Knows (feat. Amber Coffman & Cults)": "bornsinner",
-  "Rich Niggaz": "bornsinner",
-  "Where's Jermaine (Skit)": "bornsinner",
-  "Forbidden Fruit (feat. Kendrick Lamar)": "bornsinner",
-  "Chaining Day": "bornsinner",
-  "Ain't That Some Shit (Interlude)": "bornsinner",
-  "Crooked Smile (feat. TLC)": "bornsinner",
-  "Let Nas Down": "bornsinner",
-  "Born Sinner (feat. @Fauntleroy)": "bornsinner",
-  "Miss America": "bornsinner",
-  "New York Times (feat. 50 Cent & Bas)": "bornsinner",
-  "Is She Gon Pop": "bornsinner",
-  "Niggaz Know": "bornsinner",
-  "Sparks Will Fly (feat. Jhene Aiko)": "bornsinner",
-  
-  // Cole World: The Sideline Story
-  "Dollar and a Dream III": "sideline",
-  "Can't Get Enough (feat. Trey Songz)": "sideline",
-  "Lights Please": "sideline",
-  "Interlude": "sideline",
-  "Sideline Story": "sideline",
-  "Mr. Nice Watch (feat. Jay-Z)": "sideline",
-  "Cole World": "sideline",
-  "In the Morning (feat. Drake)": "sideline",
-  "Lost Ones": "sideline",
-  "Nobody's Perfect (feat. Missy Elliott)": "sideline",
-  "Never Told": "sideline",
-  "Rise & Shine": "sideline",
-  "God's Gift": "sideline",
-  "Breakdown": "sideline",
-  "Work Out": "sideline",
-  "Who Dat": "sideline",
-  "Daddy's Little Girl": "sideline",
-  
-  // Friday Night Lights
-  "Friday Night Lights (Intro)": "fnl",
-  "Too Deep for the Intro": "fnl",
-  "Before I'm Gone": "fnl",
-  "Back to the Topic (Freestyle)": "fnl",
-  "You Got It (feat. Wale)": "fnl",
-  "Villematic": "fnl",
-  "Enchanted (feat. Wale)": "fnl",
-  "Blow Up": "fnl",
-  "Higher": "fnl",
-  "2Face": "fnl",
-  "The Autograph": "fnl",
-  "Best Friend": "fnl",
-  "Cost Me a Lot": "fnl",
-  "Premeditated Murder": "fnl",
-  "Home for the Holidays": "fnl",
-  "Love Me Not": "fnl",
-  "See World": "fnl",
-  "Farewell": "fnl",
-  "Looking for Trouble (feat. Kanye West, Big Sean, Pusha T & Cyhi Da Prince)": "fnl",
-  
-  // KOD
-  "KOD": "kod",
-  "Photograph": "kod",
-  "The Cut Off (feat. kiLL edward)": "kod",
-  "ATM": "kod",
-  "Motiv8": "kod",
-  "Kevins Heart": "kod",
-  "BRACKETS": "kod",
-  "Once an Addict (Interlude)": "kod",
-  "FRIENDS (feat. kiLL edward)": "kod",
-  "Window Pain (Outro)": "kod",
-  "1985 (Intro to The Fall Off)": "kod",
-  
-  // Truly Yours Vol. 1
-  "Can I Holla At Ya": "trulyyours",
-  "Crunch Time": "trulyyours",
-  "Rise Above": "trulyyours",
-  "Tears for ODB": "trulyyours",
-  "Stay (2009)": "trulyyours",
-  
-  // Truly Yours, Vol. 2
-  "Cole Summer": "trulyyours2",
-  "Kenny Lofton (feat. Young Jeezy)": "trulyyours2",
-  "Chris Tucker (feat. 2 Chainz)": "trulyyours2",
-  "Head Bussa": "trulyyours2",
-  "Cousins (feat. Bas)": "trulyyours2",
-  "3 Wishes": "trulyyours2"
-};
 
 // Drake songs list
 const DRAKE_SONGS = [
@@ -1323,10 +1083,20 @@ const LILTECCA_ALBUM_COVERS = {
   "Treesha": "tecca"
 };
 
+// All Rappers mode: combines Drake, Travis Scott, and Lil Tecca songs
+const ALL_RAPPERS_SONGS = [...SONGS, ...DRAKE_SONGS, ...LILTECCA_SONGS];
+
+// All Rappers mode: combines album covers from Travis Scott, Drake, and Lil Tecca
+const ALL_RAPPERS_ALBUM_COVERS = {
+  ...ALBUM_COVERS,
+  ...DRAKE_ALBUM_COVERS,
+  ...LILTECCA_ALBUM_COVERS
+};
+
 // Helper functions to get artist-specific data
 function getSongsForArtist(artist) {
-    if (artist === 'jcole') {
-        return JCOLE_SONGS;
+    if (artist === 'allrappers') {
+        return ALL_RAPPERS_SONGS;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
     } else if (artist === 'bbbm') {
@@ -1338,8 +1108,8 @@ function getSongsForArtist(artist) {
 }
 
 function getAlbumMapForArtist(artist) {
-    if (artist === 'jcole') {
-        return JCOLE_ALBUM_COVERS;
+    if (artist === 'allrappers') {
+        return ALL_RAPPERS_ALBUM_COVERS;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
     } else if (artist === 'bbbm') {
@@ -1353,7 +1123,32 @@ function getAlbumMapForArtist(artist) {
 // Helper function to construct audio file URL for a song
 // For Lil Tecca, songs are in album folders, so we need to include the folder path
 function getAudioUrl(songName) {
-    if (selectedArtist === 'liltecca') {
+    // In "all rappers" mode, determine which artist the song belongs to
+    if (selectedArtist === 'allrappers') {
+        // Check which artist's song list contains this song
+        if (LILTECCA_SONGS.includes(songName)) {
+            // It's a Lil Tecca song
+            const albumMap = getAlbumMapForArtist('liltecca');
+            const albumCode = albumMap[songName] || 'tecca';
+            const folderMap = {
+                'wlyt': 'WLYT',
+                'virgo': 'Virgo World',
+                'wlyt2': 'WLYT2',
+                'tecca': 'Other'
+            };
+            const folder = folderMap[albumCode] || 'Other';
+            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Lil%20Tecca";
+            return `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
+        } else if (DRAKE_SONGS.includes(songName)) {
+            // It's a Drake song
+            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
+            return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
+        } else {
+            // It's a Travis Scott song (default)
+            const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
+            return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
+        }
+    } else if (selectedArtist === 'liltecca') {
         const albumMap = getAlbumMapForArtist('liltecca');
         const albumCode = albumMap[songName] || 'tecca'; // Default to 'tecca' for other songs
         
@@ -3223,7 +3018,7 @@ function getAlbumCoverUrl(songName) {
         return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(albumName)}.jpg`;
     }
     // Default album cover based on artist
-    const defaultCover = (selectedArtist === 'jcole') ? 'foresthills' : 'travis';
+    const defaultCover = 'travis';
     return `${SUPABASE_COVERS_BASE}/${defaultCover}.jpg`;
 }
 

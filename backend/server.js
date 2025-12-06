@@ -13,7 +13,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ---------------------------
 // SONG LISTS
 // ---------------------------
-import { jcoleSongs } from './jcole_songs.js';
 import { drakeSongs } from './drake_songs.js';
 import { bbbmSongs } from './bbbm_songs.js';
 import { lilteccaSongs } from './liltecca_songs.js';
@@ -98,8 +97,9 @@ const travisSongs = [
 
 // Helper function to get songs based on artist
 function getSongsForArtist(artist) {
-    if (artist === 'jcole') {
-        return jcoleSongs;
+    if (artist === 'allrappers') {
+        // Combine Drake, Travis Scott, and Lil Tecca songs
+        return [...travisSongs, ...drakeSongs, ...lilteccaSongs];
     } else if (artist === 'drake') {
         return drakeSongs;
     } else if (artist === 'bbbm') {
