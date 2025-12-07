@@ -1,36 +1,22 @@
 // ---------------------------
 // CONFIG
 // ---------------------------
-let SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-const SUPABASE_COVERS_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/album";
+// Cloudflare R2 Configuration
+const R2_PUBLIC_URL = "https://pub-8ae2a9bcf0924a44ba373e8e64badd68.r2.dev";
 const BACKEND_URL = "https://travis-heardle.onrender.com";
 
-// Helper function to update SUPABASE_BASE based on artist
-function updateSupabaseBase(artist) {
-    if (artist === 'drake') {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    } else if (artist === 'bbbm') {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/BBBM";
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    } else if (artist === 'liltecca') {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/" + encodeURIComponent("Lil Tecca");
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    } else if (artist === 'chooserappers') {
-        // Choose rappers mode uses multiple sources, default to travis
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    } else {
-        SUPABASE_BASE = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-        window.SUPABASE_BASE = SUPABASE_BASE;
-    }
-}
+// R2 Bucket names
+const R2_BUCKETS = {
+    travis: 'songs',
+    drake: 'drake',
+    liltecca: 'lil-tecca',
+    bbbm: 'bbbm',
+    album: 'album'
+};
 
-// Update SUPABASE_BASE on load if artist is selected
-const savedArtist = localStorage.getItem('selectedArtist');
-if (savedArtist) {
-    updateSupabaseBase(savedArtist);
-}
+// Legacy variable for compatibility (not used anymore, but kept for any remaining references)
+let SUPABASE_BASE = `${R2_PUBLIC_URL}/${R2_BUCKETS.travis}`;
+const SUPABASE_COVERS_BASE = `${R2_PUBLIC_URL}/${R2_BUCKETS.album}`;
 
 // ---------------------------
 // USER AUTHENTICATION STATE
@@ -58,7 +44,6 @@ function initAuth() {
                 }
             }
         }
-        updateSupabaseBase(savedArtist);
     }
     
     if (savedUser) {
@@ -359,7 +344,6 @@ document.getElementById("confirmRappersBtn").onclick = () => {
     localStorage.setItem('selectedArtist', 'chooserappers');
     localStorage.setItem('selectedRappers', JSON.stringify(selectedRappers));
     
-    updateSupabaseBase('chooserappers');
     showHomePage();
 };
 
@@ -373,11 +357,9 @@ function ensureArtistSelected() {
         const savedArtist = localStorage.getItem('selectedArtist');
         if (savedArtist) {
             selectedArtist = savedArtist;
-            updateSupabaseBase(savedArtist);
         } else {
             // Default to travis if no artist selected
             selectedArtist = 'travis';
-            updateSupabaseBase('travis');
         }
     }
 }
@@ -385,9 +367,6 @@ function ensureArtistSelected() {
 function selectArtist(artist) {
     selectedArtist = artist;
     localStorage.setItem('selectedArtist', artist);
-    
-    // Update Supabase base URL based on artist
-    updateSupabaseBase(artist);
     
     showHomePage();
 }
@@ -1251,8 +1230,7 @@ function getAlbumMapForArtist(artist) {
     return ALBUM_COVERS;
 }
 
-// Helper function to construct audio file URL for a song
-// For Lil Tecca, songs are in album folders, so we need to include the folder path
+// Helper function to construct audio file URL for a song using Cloudflare R2
 // songArtist is optional - if provided, use it; otherwise determine from song name
 function getAudioUrl(songName, songArtist = null) {
     // Determine which artist to use for this song
@@ -1276,37 +1254,13 @@ function getAudioUrl(songName, songArtist = null) {
         artistToUse = selectedArtist;
     }
     
-    // Construct URL based on the artist
-    if (artistToUse === 'liltecca') {
-        // Always construct the base URL for Lil Tecca bucket to ensure consistency
-        const bucketName = encodeURIComponent("Lil Tecca");
-        const baseUrl = `https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/${bucketName}`;
-        
-        // Get folder structure
-        const albumMap = getAlbumMapForArtist('liltecca');
-        const albumCode = albumMap[songName] || 'tecca';
-        const folderMap = {
-            'wlyt': 'WLYT',
-            'virgo': 'Virgo World',
-            'wlyt2': 'WLYT2',
-            'tecca': 'Other'
-        };
-        const folder = folderMap[albumCode] || 'Other';
-        
-        // Construct URL: bucket/folder/song.mp3
-        const url = `${baseUrl}/${encodeURIComponent(folder)}/${encodeURIComponent(songName)}.mp3`;
-        console.log('Lil Tecca URL:', url); // Debug log
-        return url;
-    } else if (artistToUse === 'drake') {
-        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/Drake";
-        return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
-    } else if (artistToUse === 'travis' || !artistToUse) {
-        // Default to travis
-        const baseUrl = "https://ggkanqgcvvxtpdhzmoon.supabase.co/storage/v1/object/public/songs";
-        return `${baseUrl}/${encodeURIComponent(songName)}.mp3`;
-    }
-    // For other artists, use standard path with SUPABASE_BASE
-    return `${SUPABASE_BASE}/${encodeURIComponent(songName)}.mp3`;
+    // Get the bucket name for this artist
+    const bucketName = R2_BUCKETS[artistToUse] || R2_BUCKETS.travis;
+    
+    // Construct R2 URL: https://pub-xxx.r2.dev/bucket-name/song.mp3
+    // All songs are in root of bucket (no folders)
+    const url = `${R2_PUBLIC_URL}/${bucketName}/${encodeURIComponent(songName)}.mp3`;
+    return url;
 }
 
 // ---------------------------
