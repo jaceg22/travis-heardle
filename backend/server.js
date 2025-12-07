@@ -16,6 +16,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 import { drakeSongs } from './drake_songs.js';
 import { bbbmSongs } from './bbbm_songs.js';
 import { lilteccaSongs } from './liltecca_songs.js';
+import { lilbabySongs } from './lilbaby_songs.js';
 
 const travisSongs = [
   "16 Chapels",
@@ -99,15 +100,16 @@ const travisSongs = [
 // For 'chooserappers', the frontend handles the selection, so we return all songs
 function getSongsForArtist(artist) {
     if (artist === 'chooserappers' || artist === 'allrappers') {
-        // Combine Drake, Travis Scott, and Lil Tecca songs
-        // Frontend will filter based on selected rappers
-        return [...travisSongs, ...drakeSongs, ...lilteccaSongs];
+        // Combine all artist songs - Frontend will filter based on selected rappers
+        return [...travisSongs, ...drakeSongs, ...lilteccaSongs, ...lilbabySongs];
     } else if (artist === 'drake') {
         return drakeSongs;
     } else if (artist === 'bbbm') {
         return bbbmSongs;
     } else if (artist === 'liltecca') {
         return lilteccaSongs;
+    } else if (artist === 'lilbaby') {
+        return lilbabySongs;
     }
     return travisSongs;
 }

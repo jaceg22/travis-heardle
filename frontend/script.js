@@ -11,10 +11,10 @@ const R2_PUBLIC_URLS = {
     liltecca: 'https://pub-c30b681927a64769b6f6abe522f33b80.r2.dev',
     bbbm: 'https://pub-9e5222dfa3a94b5487bacd2300d24648.r2.dev',
     album: 'https://pub-7afdb7ae46e64d4981ebeda51a6cec5d.r2.dev',
-    // New artists (buckets created, songs to be added later)
+    // New artists
     kanye: 'https://pub-0b4313b4af4b4a9a9318b78e80af6cc2.r2.dev',
     kendrick: 'https://pub-af106888801c475e8fe5d07a3e5983d5.r2.dev',
-    'lil-baby': 'https://pub-9301e2ae621f453aa6a6cc123575606c.r2.dev'
+    lilbaby: 'https://pub-9301e2ae621f453aa6a6cc123575606c.r2.dev'
 };
 
 const BACKEND_URL = "https://travis-heardle.onrender.com";
@@ -28,7 +28,7 @@ const R2_BUCKETS = {
     album: 'album',
     kanye: 'kanye',
     kendrick: 'kendrick',
-    'lil-baby': 'lil-baby'
+    lilbaby: 'lil-baby'
 };
 
 // Legacy variables for compatibility
@@ -39,8 +39,8 @@ const SUPABASE_COVERS_BASE = R2_PUBLIC_URLS.album || '';
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', or 'chooserappers'
-let selectedRappers = ['travis', 'drake', 'liltecca']; // Array of selected rappers for 'chooserappers' mode
+let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', 'lilbaby', or 'chooserappers'
+let selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby']; // Array of selected rappers for 'chooserappers' mode
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -57,7 +57,7 @@ function initAuth() {
                 try {
                     selectedRappers = JSON.parse(savedRappers);
                 } catch (e) {
-                    selectedRappers = ['travis', 'drake', 'liltecca'];
+                    selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby'];
                 }
             }
         }
@@ -135,6 +135,7 @@ function showChooseRappersPage() {
     document.getElementById("travisCheckbox").checked = selectedRappers.includes('travis');
     document.getElementById("drakeCheckbox").checked = selectedRappers.includes('drake');
     document.getElementById("lilteccaCheckbox").checked = selectedRappers.includes('liltecca');
+    document.getElementById("lilbabyCheckbox").checked = selectedRappers.includes('lilbaby');
 }
 
 function showHomePage() {
@@ -156,11 +157,14 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
     } else if (selectedArtist === 'liltecca') {
         document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
+    } else if (selectedArtist === 'lilbaby') {
+        document.querySelector("#home h1").textContent = "Lil Baby Heardle";
     } else if (selectedArtist === 'chooserappers') {
         const rapperNames = selectedRappers.map(r => {
             if (r === 'travis') return 'Travis Scott';
             if (r === 'drake') return 'Drake';
             if (r === 'liltecca') return 'Lil Tecca';
+            if (r === 'lilbaby') return 'Lil Baby';
             return r;
         }).join(' & ');
         document.querySelector("#home h1").textContent = `${rapperNames} Heardle`;
@@ -336,6 +340,10 @@ document.getElementById("lilteccaSelectBtn").onclick = () => {
     selectArtist('liltecca');
 };
 
+document.getElementById("lilbabySelectBtn").onclick = () => {
+    selectArtist('lilbaby');
+};
+
 // Choose Rappers handlers
 document.getElementById("confirmRappersBtn").onclick = () => {
     // Get selected rappers from checkboxes
@@ -348,6 +356,9 @@ document.getElementById("confirmRappersBtn").onclick = () => {
     }
     if (document.getElementById("lilteccaCheckbox").checked) {
         rappers.push('liltecca');
+    }
+    if (document.getElementById("lilbabyCheckbox").checked) {
+        rappers.push('lilbaby');
     }
     
     // Must select at least one
@@ -1158,14 +1169,173 @@ const LILTECCA_ALBUM_COVERS = {
   "Treesha": "tecca"
 };
 
-// All Rappers mode: combines Drake, Travis Scott, and Lil Tecca songs
-const ALL_RAPPERS_SONGS = [...SONGS, ...DRAKE_SONGS, ...LILTECCA_SONGS];
+// Lil Baby songs list
+const LILBABY_SONGS = [
+  // Harder Than Ever
+  "Cash",
+  "First Class",
+  "Life Goes On (ft. Gunna & Lil Uzi Vert)",
+  "Never Needed No Help",
+  "Right Now (ft. Young Thug)",
+  "Spazz",
+  "Throwing Shade (ft. Gunna)",
+  "Yes Indeed (ft. Drake)",
+  
+  // Drip Harder
+  "Drip Too Hard (ft. Gunna)",
+  "Belly (ft. Gunna)",
+  "Business Is Business (ft. Gunna)",
+  "Close Friends (ft. Gunna)",
+  "I Am (ft. Gunna)",
+  "Never Recover (ft. Gunna & Drake)",
+  
+  // My Turn
+  "All In",
+  "Can't Explain",
+  "Catch the Sun",
+  "Consistent",
+  "Emotionally Scarred",
+  "Forever (ft. Lil Wayne)",
+  "Get Ugly",
+  "Grace",
+  "Heatin Up (ft. Gunna)",
+  "How",
+  "Humble",
+  "Live Off My Closet (ft. Future)",
+  "Low Down",
+  "No Sucker (ft. Moneybagg Yo)",
+  "Same Thing",
+  "Social Distancing",
+  "Sum 2 Prove",
+  "We Should (ft. Young Thug)",
+  "Woah",
+  "Commercial (ft. Lil Uzi Vert)",
+  "We Paid (ft. 42 Dugg)",
+  "Forget That (ft. Rylo Rodriguez)",
+  
+  // Too Hard
+  "Best of Me",
+  "Freestyle",
+  "Hurry",
+  "Money Forever (ft. Gunna)",
+  "Ride My Wave",
+  "Slow Mo",
+  "Stick On Me (ft. Rylo)",
+  "Sum More (ft. Lil Yachty)",
+  "To the Top",
+  "Trap Star",
+  "Vision Clear (ft. Lavish the MDK)",
+  
+  // It's Only Me
+  "California Breeze",
+  "Double Down",
+  "Forever (ft. Fridayy)",
+  "From Now On (ft. Future)",
+  "In A Minute",
+  "Never Hating (ft. Young Thug)",
+  "Not Finished",
+  "Perfect Timing",
+  "Real Spill",
+  "Russian Roulette",
+  "Stand On It",
+  "Stop Playin (ft. Jeremih)",
+  "Top Priority",
+  "Waterfall Flow",
+  
+  // Other/Singles
+  "Errbody",
+  "On Me",
+  "The Bigger Picture"
+];
 
-// All Rappers mode: combines album covers from Travis Scott, Drake, and Lil Tecca
+// Lil Baby album mapping
+const LILBABY_ALBUM_COVERS = {
+  // Harder Than Ever - harderthanever.jpg
+  "Cash": "harderthanever",
+  "First Class": "harderthanever",
+  "Life Goes On (ft. Gunna & Lil Uzi Vert)": "harderthanever",
+  "Never Needed No Help": "harderthanever",
+  "Right Now (ft. Young Thug)": "harderthanever",
+  "Spazz": "harderthanever",
+  "Throwing Shade (ft. Gunna)": "harderthanever",
+  "Yes Indeed (ft. Drake)": "harderthanever",
+  
+  // Drip Harder - dripharder.jpg
+  "Drip Too Hard (ft. Gunna)": "dripharder",
+  "Belly (ft. Gunna)": "dripharder",
+  "Business Is Business (ft. Gunna)": "dripharder",
+  "Close Friends (ft. Gunna)": "dripharder",
+  "I Am (ft. Gunna)": "dripharder",
+  "Never Recover (ft. Gunna & Drake)": "dripharder",
+  
+  // My Turn - myturn.jpg
+  "All In": "myturn",
+  "Can't Explain": "myturn",
+  "Catch the Sun": "myturn",
+  "Consistent": "myturn",
+  "Emotionally Scarred": "myturn",
+  "Forever (ft. Lil Wayne)": "myturn",
+  "Get Ugly": "myturn",
+  "Grace": "myturn",
+  "Heatin Up (ft. Gunna)": "myturn",
+  "How": "myturn",
+  "Humble": "myturn",
+  "Live Off My Closet (ft. Future)": "myturn",
+  "Low Down": "myturn",
+  "No Sucker (ft. Moneybagg Yo)": "myturn",
+  "Same Thing": "myturn",
+  "Social Distancing": "myturn",
+  "Sum 2 Prove": "myturn",
+  "We Should (ft. Young Thug)": "myturn",
+  "Woah": "myturn",
+  "Commercial (ft. Lil Uzi Vert)": "myturn",
+  "We Paid (ft. 42 Dugg)": "myturn",
+  "Forget That (ft. Rylo Rodriguez)": "myturn",
+  
+  // Too Hard - toohard.jpg
+  "Best of Me": "toohard",
+  "Freestyle": "toohard",
+  "Hurry": "toohard",
+  "Money Forever (ft. Gunna)": "toohard",
+  "Ride My Wave": "toohard",
+  "Slow Mo": "toohard",
+  "Stick On Me (ft. Rylo)": "toohard",
+  "Sum More (ft. Lil Yachty)": "toohard",
+  "To the Top": "toohard",
+  "Trap Star": "toohard",
+  "Vision Clear (ft. Lavish the MDK)": "toohard",
+  
+  // It's Only Me - itsonlyme.jpg
+  "California Breeze": "itsonlyme",
+  "Double Down": "itsonlyme",
+  "Forever (ft. Fridayy)": "itsonlyme",
+  "From Now On (ft. Future)": "itsonlyme",
+  "In A Minute": "itsonlyme",
+  "Never Hating (ft. Young Thug)": "itsonlyme",
+  "Not Finished": "itsonlyme",
+  "Perfect Timing": "itsonlyme",
+  "Real Spill": "itsonlyme",
+  "Russian Roulette": "itsonlyme",
+  "Stand On It": "itsonlyme",
+  "Stop Playin (ft. Jeremih)": "itsonlyme",
+  "Top Priority": "itsonlyme",
+  "Waterfall Flow": "itsonlyme",
+  
+  // Other/Singles - lilbaby.jpg
+  "Errbody": "lilbaby",
+  "On Me": "lilbaby",
+  "The Bigger Picture": "lilbaby"
+};
+
+// All Rappers mode: combines Drake, Travis Scott, Lil Tecca, and Lil Baby songs
+const ALL_RAPPERS_SONGS = [...SONGS, ...DRAKE_SONGS, ...LILTECCA_SONGS, ...LILBABY_SONGS];
+
+// All Rappers mode: combines album covers from Travis Scott, Drake, Lil Tecca, and Lil Baby
 const ALL_RAPPERS_ALBUM_COVERS = {
   ...ALBUM_COVERS,
   ...DRAKE_ALBUM_COVERS,
-  ...LILTECCA_ALBUM_COVERS
+  ...LILTECCA_ALBUM_COVERS,
+  ...LILBABY_ALBUM_COVERS
 };
 
 // Helper function to determine which artist(s) a song belongs to
@@ -1180,6 +1350,9 @@ function getArtistsForSong(songName) {
     }
     if (LILTECCA_SONGS.includes(songName)) {
         artists.push('liltecca');
+    }
+    if (LILBABY_SONGS.includes(songName)) {
+        artists.push('lilbaby');
     }
     return artists;
 }
@@ -1210,6 +1383,9 @@ function getSongsForArtist(artist) {
         if (selectedRappers.includes('liltecca')) {
             songs.push(...LILTECCA_SONGS);
         }
+        if (selectedRappers.includes('lilbaby')) {
+            songs.push(...LILBABY_SONGS);
+        }
         return songs;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
@@ -1217,6 +1393,8 @@ function getSongsForArtist(artist) {
         return BBBM_SONGS;
     } else if (artist === 'liltecca') {
         return LILTECCA_SONGS;
+    } else if (artist === 'lilbaby') {
+        return LILBABY_SONGS;
     }
     return SONGS;
 }
@@ -1234,6 +1412,9 @@ function getAlbumMapForArtist(artist) {
         if (selectedRappers.includes('liltecca')) {
             Object.assign(covers, LILTECCA_ALBUM_COVERS);
         }
+        if (selectedRappers.includes('lilbaby')) {
+            Object.assign(covers, LILBABY_ALBUM_COVERS);
+        }
         return covers;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
@@ -1241,6 +1422,8 @@ function getAlbumMapForArtist(artist) {
         return BBBM_ALBUM_COVERS;
     } else if (artist === 'liltecca') {
         return LILTECCA_ALBUM_COVERS;
+    } else if (artist === 'lilbaby') {
+        return LILBABY_ALBUM_COVERS;
     }
     return ALBUM_COVERS;
 }
