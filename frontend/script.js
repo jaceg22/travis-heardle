@@ -2,21 +2,38 @@
 // CONFIG
 // ---------------------------
 // Cloudflare R2 Configuration
-const R2_PUBLIC_URL = "https://pub-8ae2a9bcf0924a44ba373e8e64badd68.r2.dev";
+// Each bucket has its own public development URL from R2 dashboard
+
+// R2 Public URLs for each bucket
+const R2_PUBLIC_URLS = {
+    travis: 'https://pub-8ae2a9bcf0924a44ba373e8e64badd68.r2.dev',
+    drake: 'https://pub-f23f1ecab6c7445e8a19980474554deb.r2.dev',
+    liltecca: 'https://pub-c30b681927a64769b6f6abe522f33b80.r2.dev',
+    bbbm: 'https://pub-9e5222dfa3a94b5487bacd2300d24648.r2.dev',
+    album: 'https://pub-7afdb7ae46e64d4981ebeda51a6cec5d.r2.dev',
+    // New artists (buckets created, songs to be added later)
+    kanye: 'https://pub-0b4313b4af4b4a9a9318b78e80af6cc2.r2.dev',
+    kendrick: 'https://pub-af106888801c475e8fe5d07a3e5983d5.r2.dev',
+    'lil-baby': 'https://pub-9301e2ae621f453aa6a6cc123575606c.r2.dev'
+};
+
 const BACKEND_URL = "https://travis-heardle.onrender.com";
 
-// R2 Bucket names
+// R2 Bucket names (for reference, not used in URL construction)
 const R2_BUCKETS = {
     travis: 'songs',
     drake: 'drake',
     liltecca: 'lil-tecca',
     bbbm: 'bbbm',
-    album: 'album'
+    album: 'album',
+    kanye: 'kanye',
+    kendrick: 'kendrick',
+    'lil-baby': 'lil-baby'
 };
 
-// Legacy variable for compatibility (not used anymore, but kept for any remaining references)
-let SUPABASE_BASE = `${R2_PUBLIC_URL}/${R2_BUCKETS.travis}`;
-const SUPABASE_COVERS_BASE = `${R2_PUBLIC_URL}/${R2_BUCKETS.album}`;
+// Legacy variables for compatibility
+let SUPABASE_BASE = R2_PUBLIC_URLS.travis || '';
+const SUPABASE_COVERS_BASE = R2_PUBLIC_URLS.album || '';
 
 // ---------------------------
 // USER AUTHENTICATION STATE
@@ -1254,12 +1271,16 @@ function getAudioUrl(songName, songArtist = null) {
         artistToUse = selectedArtist;
     }
     
-    // Get the bucket name for this artist
-    const bucketName = R2_BUCKETS[artistToUse] || R2_BUCKETS.travis;
+    // Get the public URL for this artist's bucket
+    const bucketPublicUrl = R2_PUBLIC_URLS[artistToUse] || R2_PUBLIC_URLS.travis;
     
-    // Construct R2 URL: https://pub-xxx.r2.dev/bucket-name/song.mp3
+    // Construct R2 URL: {bucket-public-url}/song.mp3
     // All songs are in root of bucket (no folders)
-    const url = `${R2_PUBLIC_URL}/${bucketName}/${encodeURIComponent(songName)}.mp3`;
+    const url = `${bucketPublicUrl}/${encodeURIComponent(songName)}.mp3`;
+    
+    // Debug logging
+    console.log('Audio URL:', url, 'Artist:', artistToUse, 'Song:', songName);
+    
     return url;
 }
 
@@ -1537,7 +1558,8 @@ async function getSongDuration(songName, songArtist = null) {
         audio.addEventListener('loadedmetadata', () => {
             resolve(audio.duration);
         });
-        audio.addEventListener('error', () => {
+        audio.addEventListener('error', (e) => {
+            console.error('Error loading audio for duration:', url, e);
             resolve(180); // Default 3 minutes if can't load
         });
         audio.load();
