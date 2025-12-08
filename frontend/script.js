@@ -1364,7 +1364,6 @@ const KENDRICK_SONGS = [
   // good kid mAAd city
   "Backseat Freestyle",
   "Bitch Don't Kill My Vibe",
-  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)",
   "Black Boy Fly (Bonus Track)",
   "Compton (ft. Dr. Dre)",
   "good kid",
@@ -1448,7 +1447,6 @@ const KENDRICK_ALBUM_COVERS = {
   // good kid mAAd city - gkmc.jpg
   "Backseat Freestyle": "gkmc",
   "Bitch Don't Kill My Vibe": "gkmc",
-  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)": "gkmc",
   "Black Boy Fly (Bonus Track)": "gkmc",
   "Compton (ft. Dr. Dre)": "gkmc",
   "good kid": "gkmc",
@@ -1539,7 +1537,7 @@ const KANYE_SONGS = [
   "Hey Mama",
   "Late",
   "Roses",
-  "Touch The Sky (ft. Lupe Fiasco)",
+  "Touch The Sky (feat. Lupe Fiasco)",
   "We Major (ft. Nas & Really Doe)",
   
   // Graduation
@@ -1638,7 +1636,7 @@ const KANYE_ALBUM_COVERS = {
   "Hey Mama": "late",
   "Late": "late",
   "Roses": "late",
-  "Touch The Sky (ft. Lupe Fiasco)": "late",
+  "Touch The Sky (feat. Lupe Fiasco)": "late",
   "We Major (ft. Nas & Really Doe)": "late",
   
   // Graduation - graduation.jpg
@@ -2701,6 +2699,7 @@ document.getElementById("speedSkip").onclick = () => {
     
     if (speedState.audio) {
         speedState.audio.pause();
+        speedState.audio = null;
     }
     
     speedState.skips++;
@@ -2723,7 +2722,39 @@ document.getElementById("speedSkip").onclick = () => {
     
     if (speedState.progressInterval) {
         clearInterval(speedState.progressInterval);
+        speedState.progressInterval = null;
     }
+    
+    // Restart playback with the new duration based on updated skips count
+    const duration = DURATIONS[Math.min(speedState.skips, 5)];
+    const url = getAudioUrl(speedState.currentSong, speedState.songArtist);
+    
+    speedState.audio = new Audio(url);
+    speedState.audio.currentTime = speedState.startTime;
+    
+    speedState.audio.play().catch(err => {
+        console.error("Error playing audio:", err);
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Try again.";
+    });
+    
+    speedState.progressInterval = setInterval(() => {
+        if (speedState.audio && !speedState.audio.paused) {
+            const current = speedState.audio.currentTime;
+            const total = speedState.songDuration || 180;
+            const overallProgress = (current / total) * 100;
+            document.getElementById("speedSongProgressFill").style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+        }
+    }, 50);
+    
+    setTimeout(() => {
+        if (speedState.audio) {
+            speedState.audio.pause();
+        }
+        if (speedState.progressInterval) {
+            clearInterval(speedState.progressInterval);
+            speedState.progressInterval = null;
+        }
+    }, duration * 1000);
 };
 
 document.getElementById("speedGuess").onclick = () => {

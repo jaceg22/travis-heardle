@@ -716,8 +716,9 @@ input[type="text"]:focus {
     border: 2px solid #333;
     border-radius: 10px;
     padding: 40px;
-    max-width: 600px;
+    max-width: 800px;
     width: 90%;
+    margin: 100px auto;
     text-align: center;
 }
 
@@ -772,6 +773,32 @@ input[type="text"]:focus {
 
 .artist-btn:hover {
     background: #0a0;
+}
+
+.choose-rappers-separator {
+    width: 100%;
+    height: 2px;
+    background: #444;
+    margin: 40px 0;
+}
+
+.choose-rappers-option {
+    margin-top: 20px;
+    border-color: #0066ff !important;
+}
+
+.choose-rappers-option:hover {
+    border-color: #0088ff !important;
+    background: #1a1a2a;
+}
+
+.choose-rappers-btn {
+    background: #0066ff !important;
+    color: white !important;
+}
+
+.choose-rappers-btn:hover {
+    background: #0088ff !important;
 }
 
 /* CHOOSE RAPPERS PAGE */

@@ -23,7 +23,7 @@ export const kanyeSongs = [
   "Hey Mama",
   "Late",
   "Roses",
-  "Touch The Sky (ft. Lupe Fiasco)",
+  "Touch The Sky (feat. Lupe Fiasco)",
   "We Major (ft. Nas & Really Doe)",
   
   // Graduation
@@ -122,7 +122,7 @@ export const kanyeAlbumMap = {
   "Hey Mama": "late",
   "Late": "late",
   "Roses": "late",
-  "Touch The Sky (ft. Lupe Fiasco)": "late",
+  "Touch The Sky (feat. Lupe Fiasco)": "late",
   "We Major (ft. Nas & Really Doe)": "late",
   
   // Graduation - graduation.jpg

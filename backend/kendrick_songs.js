@@ -16,7 +16,6 @@ export const kendrickSongs = [
   // good kid mAAd city
   "Backseat Freestyle",
   "Bitch Don't Kill My Vibe",
-  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)",
   "Black Boy Fly (Bonus Track)",
   "Compton (ft. Dr. Dre)",
   "good kid",
@@ -100,7 +99,6 @@ export const kendrickAlbumMap = {
   // good kid mAAd city - gkmc.jpg
   "Backseat Freestyle": "gkmc",
   "Bitch Don't Kill My Vibe": "gkmc",
-  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)": "gkmc",
   "Black Boy Fly (Bonus Track)": "gkmc",
   "Compton (ft. Dr. Dre)": "gkmc",
   "good kid": "gkmc",
