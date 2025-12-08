@@ -1912,6 +1912,8 @@ let h2hState = {
     gameStarted: false,
     playerCount: 0,
     scores: {},
+    countdownActive: false,
+    pendingAutoGuess: null,
     roundFinished: false,
     finished: false,
     progressBars: [],
@@ -1971,10 +1973,27 @@ document.getElementById("h2hRegularBtn").onclick = () => {
     gameMode = 'regular';
     home.style.display = "none";
     h2hMenu.style.display = "block";
-    // Pre-fill username if logged in
+    // Pre-fill and disable username if logged in
     if (currentUser && currentUser.username) {
-        document.getElementById("createUsername").value = currentUser.username;
-        document.getElementById("joinUsername").value = currentUser.username;
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.value = currentUser.username;
+        joinInput.value = currentUser.username;
+        createInput.disabled = true;
+        joinInput.disabled = true;
+        createInput.style.backgroundColor = "#333";
+        createInput.style.color = "#999";
+        joinInput.style.backgroundColor = "#333";
+        joinInput.style.color = "#999";
+    } else {
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.disabled = false;
+        joinInput.disabled = false;
+        createInput.style.backgroundColor = "";
+        createInput.style.color = "";
+        joinInput.style.backgroundColor = "";
+        joinInput.style.color = "";
     }
 };
 
@@ -1983,10 +2002,27 @@ document.getElementById("h2hRandomBtn").onclick = () => {
     gameMode = 'random';
     home.style.display = "none";
     h2hMenu.style.display = "block";
-    // Pre-fill username if logged in
+    // Pre-fill and disable username if logged in
     if (currentUser && currentUser.username) {
-        document.getElementById("createUsername").value = currentUser.username;
-        document.getElementById("joinUsername").value = currentUser.username;
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.value = currentUser.username;
+        joinInput.value = currentUser.username;
+        createInput.disabled = true;
+        joinInput.disabled = true;
+        createInput.style.backgroundColor = "#333";
+        createInput.style.color = "#999";
+        joinInput.style.backgroundColor = "#333";
+        joinInput.style.color = "#999";
+    } else {
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.disabled = false;
+        joinInput.disabled = false;
+        createInput.style.backgroundColor = "";
+        createInput.style.color = "";
+        joinInput.style.backgroundColor = "";
+        joinInput.style.color = "";
     }
 };
 
@@ -3199,24 +3235,24 @@ function startH2HCountdown(callback) {
     countdownOverlay.style.display = "flex";
     let count = 3;
     
+    // Show initial 3
+    countdownNumber.textContent = count;
+    countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
+    
     const countdownInterval = setInterval(() => {
-        countdownNumber.textContent = count;
-        countdownNumber.style.animation = "none";
-        // Trigger reflow to restart animation
-        void countdownNumber.offsetWidth;
-        countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
-        
-        if (count <= 1) {
+        count--;
+        if (count <= 0) {
             clearInterval(countdownInterval);
             countdownOverlay.style.display = "none";
             if (callback) callback();
+        } else {
+            countdownNumber.textContent = count;
+            countdownNumber.style.animation = "none";
+            // Trigger reflow to restart animation
+            void countdownNumber.offsetWidth;
+            countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
         }
-        count--;
     }, 1000);
-    
-    // Show initial 3
-    countdownNumber.textContent = 3;
-    countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
 }
 
 socket.on("gameStart", data => {
@@ -3299,8 +3335,13 @@ socket.on("gameStart", data => {
         h2hState.songDuration = duration;
     });
     
+    // Reset pending auto-guess for new round
+    h2hState.pendingAutoGuess = null;
+    
     // Start countdown, then enable controls after countdown
+    h2hState.countdownActive = true;
     startH2HCountdown(() => {
+        h2hState.countdownActive = false;
         if (statusEl) {
             statusEl.textContent = "Game started!";
         }
@@ -3308,6 +3349,14 @@ socket.on("gameStart", data => {
         document.getElementById("h2hNewGame").disabled = true;
         document.getElementById("h2hRequestNewSong").disabled = false;
         document.getElementById("h2hPlay").textContent = "Play";
+        
+        // If there's a pending auto-guess, execute it now (after countdown + 1.4 seconds)
+        if (h2hState.pendingAutoGuess) {
+            setTimeout(() => {
+                executeAutoGuess(h2hState.pendingAutoGuess);
+                h2hState.pendingAutoGuess = null;
+            }, 1400);
+        }
     });
     
     // Setup chat resize functionality after DOM is ready
@@ -3733,9 +3782,8 @@ socket.on("chatMessage", data => {
     });
 });
 
-// Handle auto-guess cheat mode
-socket.on("autoGuess", data => {
-    console.log("Auto-guess triggered:", data);
+// Execute auto-guess (helper function)
+function executeAutoGuess(data) {
     if (!h2hState.gameStarted || h2hState.guessed || h2hState.roundFinished || !h2hState.currentSong) {
         return;
     }
@@ -3773,6 +3821,25 @@ socket.on("autoGuess", data => {
     document.getElementById("h2hGuess").disabled = true;
     document.getElementById("h2hPlay").disabled = true;
     document.getElementById("h2hSkip").disabled = true;
+}
+
+// Handle auto-guess cheat mode
+socket.on("autoGuess", data => {
+    console.log("Auto-guess triggered:", data);
+    if (!h2hState.gameStarted || h2hState.guessed || h2hState.roundFinished || !h2hState.currentSong) {
+        return;
+    }
+    
+    // If countdown is active, queue the auto-guess until countdown finishes
+    if (h2hState.countdownActive) {
+        h2hState.pendingAutoGuess = data;
+        return;
+    }
+    
+    // If countdown is not active, execute immediately after 1.4 seconds
+    setTimeout(() => {
+        executeAutoGuess(data);
+    }, 1400);
 });
 
 // Handle cheat disabled event - re-enable inputs
