@@ -1971,6 +1971,11 @@ document.getElementById("h2hRegularBtn").onclick = () => {
     gameMode = 'regular';
     home.style.display = "none";
     h2hMenu.style.display = "block";
+    // Pre-fill username if logged in
+    if (currentUser && currentUser.username) {
+        document.getElementById("createUsername").value = currentUser.username;
+        document.getElementById("joinUsername").value = currentUser.username;
+    }
 };
 
 document.getElementById("h2hRandomBtn").onclick = () => {
@@ -1978,6 +1983,11 @@ document.getElementById("h2hRandomBtn").onclick = () => {
     gameMode = 'random';
     home.style.display = "none";
     h2hMenu.style.display = "block";
+    // Pre-fill username if logged in
+    if (currentUser && currentUser.username) {
+        document.getElementById("createUsername").value = currentUser.username;
+        document.getElementById("joinUsername").value = currentUser.username;
+    }
 };
 
 document.getElementById("speedBtn").onclick = () => {
@@ -3694,8 +3704,8 @@ socket.on("autoGuess", data => {
         guessInput.value = data.song;
     }
     
-    // Calculate duration (1 second wait + minimal time)
-    const duration = 1.0; // 1 second as specified
+    // Calculate duration (1.4 seconds wait + minimal time)
+    const duration = 1.4; // 1.4 seconds as specified
     const timestamp = Date.now();
     
     // Submit the guess
@@ -3721,6 +3731,17 @@ socket.on("autoGuess", data => {
     document.getElementById("h2hGuess").disabled = true;
     document.getElementById("h2hPlay").disabled = true;
     document.getElementById("h2hSkip").disabled = true;
+});
+
+// Handle cheat disabled event - re-enable inputs
+socket.on("cheatDisabled", () => {
+    console.log("Cheat disabled, re-enabling inputs");
+    if (h2hState.gameStarted && !h2hState.roundFinished && !h2hState.guessed) {
+        document.getElementById("h2hGuessInput").disabled = false;
+        document.getElementById("h2hGuess").disabled = false;
+        document.getElementById("h2hPlay").disabled = false;
+        document.getElementById("h2hSkip").disabled = false;
+    }
 });
 
 // ---------------------------

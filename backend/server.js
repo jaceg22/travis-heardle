@@ -668,7 +668,7 @@ io.on("connection", (socket) => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 1000);
+        }, 1400);
       }
     } else if (game.started) {
       // If game already started, just send to the joining player
@@ -686,7 +686,7 @@ io.on("connection", (socket) => {
           socket.emit("autoGuess", {
             song: game.song
           });
-        }, 1000);
+        }, 1400);
       }
       
       // Store socket reference in lobby for cheat mode
@@ -777,7 +777,7 @@ io.on("connection", (socket) => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 1000);
+        }, 1400);
       }
     });
 
@@ -830,7 +830,7 @@ io.on("connection", (socket) => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 1000);
+        }, 1400);
       }
     } else {
       // Broadcast request status
@@ -884,6 +884,11 @@ io.on("connection", (socket) => {
       if (game.cheatEnabled === username) {
         game.cheatEnabled = null;
         console.log(`Cheat disabled by ${username} in lobby ${lobbyId}`);
+        // Emit event to re-enable inputs for this user
+        if (game.sockets && game.sockets[username]) {
+          const userSocketId = game.sockets[username];
+          io.to(userSocketId).emit("cheatDisabled");
+        }
       }
       // Don't broadcast this message
       return;
