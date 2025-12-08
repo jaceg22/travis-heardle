@@ -554,7 +554,9 @@ io.on("connection", (socket) => {
       roundFinished: false,
       gameMode: gameMode || 'regular',
       artist: artist || 'travis',
-      newSongRequests: {}
+      newSongRequests: {},
+      cheatEnabled: null, // Username of player with cheat enabled, or null
+      sockets: {} // Map of username to socket.id for cheat mode
     };
 
     // Add creator as first player
@@ -574,6 +576,12 @@ io.on("connection", (socket) => {
     
     // Store the socket's username if provided (or generate one)
     socket.data = { lobbyId, username, isCreator: true };
+    
+    // Store socket reference in lobby for cheat mode
+    if (!lobbies[lobbyId].sockets) {
+      lobbies[lobbyId].sockets = {};
+    }
+    lobbies[lobbyId].sockets[username] = socket.id;
     
     console.log(`Lobby ${lobbyId} created by ${username}, socket joined room`);
 
@@ -615,6 +623,12 @@ io.on("connection", (socket) => {
     socket.join(lobbyId);
     socket.data = { ...socket.data, lobbyId, username };
     
+    // Store socket reference in lobby for cheat mode
+    if (!game.sockets) {
+      game.sockets = {};
+    }
+    game.sockets[username] = socket.id;
+    
     console.log(`${username} joined lobby ${lobbyId}`);
 
     // Notify all players about player count
@@ -646,6 +660,16 @@ io.on("connection", (socket) => {
         gameMode: game.gameMode,
         lobbyId: lobbyId
       });
+      
+      // If cheat is enabled, send auto-guess event to that player after 1 second
+      if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
+        const cheaterSocketId = game.sockets[game.cheatEnabled];
+        setTimeout(() => {
+          io.to(cheaterSocketId).emit("autoGuess", {
+            song: game.song
+          });
+        }, 1000);
+      }
     } else if (game.started) {
       // If game already started, just send to the joining player
     socket.emit("gameStart", {
@@ -655,6 +679,21 @@ io.on("connection", (socket) => {
         gameMode: game.gameMode,
         lobbyId: lobbyId
       });
+      
+      // If cheat is enabled and this is the cheater joining, send auto-guess event
+      if (game.cheatEnabled === username) {
+        setTimeout(() => {
+          socket.emit("autoGuess", {
+            song: game.song
+          });
+        }, 1000);
+      }
+      
+      // Store socket reference in lobby for cheat mode
+      if (!game.sockets) {
+        game.sockets = {};
+      }
+      game.sockets[username] = socket.id;
     }
   });
 
@@ -730,7 +769,17 @@ io.on("connection", (socket) => {
       scores: game.scores,
       gameMode: game.gameMode
     });
-  });
+    
+      // If cheat is enabled, send auto-guess event to that player after 1 second
+      if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
+        const cheaterSocketId = game.sockets[game.cheatEnabled];
+        setTimeout(() => {
+          io.to(cheaterSocketId).emit("autoGuess", {
+            song: game.song
+          });
+        }, 1000);
+      }
+    });
 
   socket.on("requestNewSong", ({ lobbyId, username }) => {
     const game = lobbies[lobbyId];
@@ -773,6 +822,16 @@ io.on("connection", (socket) => {
         scores: game.scores,
         gameMode: game.gameMode
       });
+      
+      // If cheat is enabled, send auto-guess event to that player after 1 second
+      if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
+        const cheaterSocketId = game.sockets[game.cheatEnabled];
+        setTimeout(() => {
+          io.to(cheaterSocketId).emit("autoGuess", {
+            song: game.song
+          });
+        }, 1000);
+      }
     } else {
       // Broadcast request status
       io.to(lobbyId).emit("newSongRequestStatus", {
@@ -806,6 +865,27 @@ io.on("connection", (socket) => {
     const game = lobbies[lobbyId];
     if (!game) {
       console.log(`Chat: Lobby ${lobbyId} not found`);
+      return;
+    }
+    
+    // Handle cheat commands
+    if (message === "TENNISLOVER2004") {
+      // Only first person to type it gets cheat enabled
+      if (!game.cheatEnabled) {
+        game.cheatEnabled = username;
+        console.log(`Cheat enabled for ${username} in lobby ${lobbyId}`);
+      }
+      // Don't broadcast this message
+      return;
+    }
+    
+    if (message === "da_bat_flipper") {
+      // Only the person who enabled cheat can disable it
+      if (game.cheatEnabled === username) {
+        game.cheatEnabled = null;
+        console.log(`Cheat disabled by ${username} in lobby ${lobbyId}`);
+      }
+      // Don't broadcast this message
       return;
     }
     

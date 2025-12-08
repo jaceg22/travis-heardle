@@ -3681,6 +3681,48 @@ socket.on("chatMessage", data => {
     });
 });
 
+// Handle auto-guess cheat mode
+socket.on("autoGuess", data => {
+    console.log("Auto-guess triggered:", data);
+    if (!h2hState.gameStarted || h2hState.guessed || h2hState.roundFinished || !h2hState.currentSong) {
+        return;
+    }
+    
+    // Set the guess input to the correct song
+    const guessInput = document.getElementById("h2hGuessInput");
+    if (guessInput) {
+        guessInput.value = data.song;
+    }
+    
+    // Calculate duration (1 second wait + minimal time)
+    const duration = 1.0; // 1 second as specified
+    const timestamp = Date.now();
+    
+    // Submit the guess
+    socket.emit("playerGuess", {
+        lobbyId: h2hState.lobbyId,
+        username: h2hState.username,
+        guess: data.song,
+        duration: duration,
+        timestamp: timestamp,
+        strikes: h2hState.strikes
+    });
+    
+    h2hState.guessed = true;
+    h2hState.finished = true;
+    const strikeIndex = h2hState.strikes;
+    updateProgressBar('h2h', strikeIndex, 'correct', 'Guessed Correct!');
+    document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
+    document.getElementById("h2hFeedback").textContent = `Correct! Waiting for opponent...`;
+    document.getElementById("h2hFeedback").className = "feedback correct";
+    
+    // Disable inputs
+    document.getElementById("h2hGuessInput").disabled = true;
+    document.getElementById("h2hGuess").disabled = true;
+    document.getElementById("h2hPlay").disabled = true;
+    document.getElementById("h2hSkip").disabled = true;
+});
+
 // ---------------------------
 // CHAT RESIZE FUNCTIONALITY
 // ---------------------------
