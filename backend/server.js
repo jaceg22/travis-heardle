@@ -17,6 +17,8 @@ import { drakeSongs } from './drake_songs.js';
 import { bbbmSongs } from './bbbm_songs.js';
 import { lilteccaSongs } from './liltecca_songs.js';
 import { lilbabySongs } from './lilbaby_songs.js';
+import { kendrickSongs } from './kendrick_songs.js';
+import { kanyeSongs } from './kanye_songs.js';
 
 const travisSongs = [
   "16 Chapels",
@@ -101,7 +103,7 @@ const travisSongs = [
 function getSongsForArtist(artist) {
     if (artist === 'chooserappers' || artist === 'allrappers') {
         // Combine all artist songs - Frontend will filter based on selected rappers
-        return [...travisSongs, ...drakeSongs, ...lilteccaSongs, ...lilbabySongs];
+        return [...travisSongs, ...drakeSongs, ...lilteccaSongs, ...lilbabySongs, ...kendrickSongs, ...kanyeSongs];
     } else if (artist === 'drake') {
         return drakeSongs;
     } else if (artist === 'bbbm') {
@@ -110,6 +112,10 @@ function getSongsForArtist(artist) {
         return lilteccaSongs;
     } else if (artist === 'lilbaby') {
         return lilbabySongs;
+    } else if (artist === 'kendrick') {
+        return kendrickSongs;
+    } else if (artist === 'kanye') {
+        return kanyeSongs;
     }
     return travisSongs;
 }

@@ -39,8 +39,8 @@ const SUPABASE_COVERS_BASE = R2_PUBLIC_URLS.album || '';
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', 'lilbaby', or 'chooserappers'
-let selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby']; // Array of selected rappers for 'chooserappers' mode
+let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', 'lilbaby', 'kendrick', 'kanye', or 'chooserappers'
+let selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby', 'kendrick', 'kanye']; // Array of selected rappers for 'chooserappers' mode
 
 // Check if user is logged in from localStorage
 function initAuth() {
@@ -57,7 +57,7 @@ function initAuth() {
                 try {
                     selectedRappers = JSON.parse(savedRappers);
                 } catch (e) {
-                    selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby'];
+                    selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby', 'kendrick', 'kanye'];
                 }
             }
         }
@@ -136,6 +136,8 @@ function showChooseRappersPage() {
     document.getElementById("drakeCheckbox").checked = selectedRappers.includes('drake');
     document.getElementById("lilteccaCheckbox").checked = selectedRappers.includes('liltecca');
     document.getElementById("lilbabyCheckbox").checked = selectedRappers.includes('lilbaby');
+    document.getElementById("kendrickCheckbox").checked = selectedRappers.includes('kendrick');
+    document.getElementById("kanyeCheckbox").checked = selectedRappers.includes('kanye');
 }
 
 function showHomePage() {
@@ -159,12 +161,18 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
     } else if (selectedArtist === 'lilbaby') {
         document.querySelector("#home h1").textContent = "Lil Baby Heardle";
+    } else if (selectedArtist === 'kendrick') {
+        document.querySelector("#home h1").textContent = "Kendrick Lamar Heardle";
+    } else if (selectedArtist === 'kanye') {
+        document.querySelector("#home h1").textContent = "Kanye West Heardle";
     } else if (selectedArtist === 'chooserappers') {
         const rapperNames = selectedRappers.map(r => {
             if (r === 'travis') return 'Travis Scott';
             if (r === 'drake') return 'Drake';
             if (r === 'liltecca') return 'Lil Tecca';
             if (r === 'lilbaby') return 'Lil Baby';
+            if (r === 'kendrick') return 'Kendrick Lamar';
+            if (r === 'kanye') return 'Kanye West';
             return r;
         }).join(' & ');
         document.querySelector("#home h1").textContent = `${rapperNames} Heardle`;
@@ -344,6 +352,14 @@ document.getElementById("lilbabySelectBtn").onclick = () => {
     selectArtist('lilbaby');
 };
 
+document.getElementById("kendrickSelectBtn").onclick = () => {
+    selectArtist('kendrick');
+};
+
+document.getElementById("kanyeSelectBtn").onclick = () => {
+    selectArtist('kanye');
+};
+
 // Choose Rappers handlers
 document.getElementById("confirmRappersBtn").onclick = () => {
     // Get selected rappers from checkboxes
@@ -359,6 +375,12 @@ document.getElementById("confirmRappersBtn").onclick = () => {
     }
     if (document.getElementById("lilbabyCheckbox").checked) {
         rappers.push('lilbaby');
+    }
+    if (document.getElementById("kendrickCheckbox").checked) {
+        rappers.push('kendrick');
+    }
+    if (document.getElementById("kanyeCheckbox").checked) {
+        rappers.push('kanye');
     }
     
     // Must select at least one
@@ -1327,15 +1349,383 @@ const LILBABY_ALBUM_COVERS = {
   "The Bigger Picture": "lilbaby"
 };
 
-// All Rappers mode: combines Drake, Travis Scott, Lil Tecca, and Lil Baby songs
-const ALL_RAPPERS_SONGS = [...SONGS, ...DRAKE_SONGS, ...LILTECCA_SONGS, ...LILBABY_SONGS];
+// Kendrick Lamar songs list
+const KENDRICK_SONGS = [
+  // Section 80
+  "A.D.H.D",
+  "Fuck Your Ethnicity",
+  "HiiiPower",
+  "Hol' Up",
+  "Keisha's Song (Her Pain)",
+  "Poe Mans Dreams (His Vice)",
+  "Rigamortus",
+  "Ronald Reagan Era",
+  
+  // good kid mAAd city
+  "Backseat Freestyle",
+  "Bitch Don't Kill My Vibe",
+  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)",
+  "Black Boy Fly (Bonus Track)",
+  "Compton (ft. Dr. Dre)",
+  "good kid",
+  "m.A.A.d city (ft. MC Eiht)",
+  "Money Trees (ft. Jay Rock)",
+  "Now or Never (ft. Mary J Blige (Bonus Track)",
+  "Poetic Justice (ft. Drake)",
+  "Sing About Me, I'm Dying Of Thirst",
+  "Swimming Pools (Drank)",
+  "The Art of Peer Pressure",
+  
+  // To Pimp A Butterfly
+  "Alright",
+  "i",
+  "King Kunta",
+  "These Walls",
+  "u",
+  "Wesley's Theory",
+  
+  // DAMN.
+  "BLOOD",
+  "DNA",
+  "DUCKWORTH",
+  "ELEMENT",
+  "FEAR",
+  "FEEL",
+  "GOD",
+  "HUMBLE",
+  "LOVE (ft. Zacari)",
+  "LOYALTY (ft. Rihanna)",
+  "LUST",
+  "PRIDE",
+  "XXX (ft. U2)",
+  "YAH",
+  
+  // Mr Morale and the Big Steppers
+  "Count Me Out",
+  "Father Time",
+  "Mirror",
+  "Mother I Sober",
+  "N95",
+  "Rich Spirit",
+  "Savior",
+  "Silent Hill (ft. Kodak Black)",
+  "The Heart Part 5",
+  "United in Grief",
+  "WE CRY TOGETHER (ft. Taylour Paige)",
+  
+  // gnx
+  "dodger blue",
+  "gnx",
+  "gloria",
+  "heart pt. 6",
+  "hey now",
+  "luther",
+  "man at the garden",
+  "peekaboo",
+  "squabble up",
+  "tv off",
+  "wacced out murals",
+  
+  // Other/Singles
+  "All The Stars",
+  "euphoria",
+  "Not Like Us",
+  "Prayer"
+];
 
-// All Rappers mode: combines album covers from Travis Scott, Drake, Lil Tecca, and Lil Baby
+// Kendrick Lamar album mapping
+const KENDRICK_ALBUM_COVERS = {
+  // Section 80 - section.jpg
+  "A.D.H.D": "section",
+  "Fuck Your Ethnicity": "section",
+  "HiiiPower": "section",
+  "Hol' Up": "section",
+  "Keisha's Song (Her Pain)": "section",
+  "Poe Mans Dreams (His Vice)": "section",
+  "Rigamortus": "section",
+  "Ronald Reagan Era": "section",
+  
+  // good kid mAAd city - gkmc.jpg
+  "Backseat Freestyle": "gkmc",
+  "Bitch Don't Kill My Vibe": "gkmc",
+  "Bitch Don't Kill My Vibe (Remix) (ft. Jay Z)": "gkmc",
+  "Black Boy Fly (Bonus Track)": "gkmc",
+  "Compton (ft. Dr. Dre)": "gkmc",
+  "good kid": "gkmc",
+  "m.A.A.d city (ft. MC Eiht)": "gkmc",
+  "Money Trees (ft. Jay Rock)": "gkmc",
+  "Now or Never (ft. Mary J Blige (Bonus Track)": "gkmc",
+  "Poetic Justice (ft. Drake)": "gkmc",
+  "Sing About Me, I'm Dying Of Thirst": "gkmc",
+  "Swimming Pools (Drank)": "gkmc",
+  "The Art of Peer Pressure": "gkmc",
+  
+  // To Pimp A Butterfly - tpab.jpg
+  "Alright": "tpab",
+  "i": "tpab",
+  "King Kunta": "tpab",
+  "These Walls": "tpab",
+  "u": "tpab",
+  "Wesley's Theory": "tpab",
+  
+  // DAMN. - damn.jpg
+  "BLOOD": "damn",
+  "DNA": "damn",
+  "DUCKWORTH": "damn",
+  "ELEMENT": "damn",
+  "FEAR": "damn",
+  "FEEL": "damn",
+  "GOD": "damn",
+  "HUMBLE": "damn",
+  "LOVE (ft. Zacari)": "damn",
+  "LOYALTY (ft. Rihanna)": "damn",
+  "LUST": "damn",
+  "PRIDE": "damn",
+  "XXX (ft. U2)": "damn",
+  "YAH": "damn",
+  
+  // Mr Morale and the Big Steppers - mmtbs.jpg
+  "Count Me Out": "mmtbs",
+  "Father Time": "mmtbs",
+  "Mirror": "mmtbs",
+  "Mother I Sober": "mmtbs",
+  "N95": "mmtbs",
+  "Rich Spirit": "mmtbs",
+  "Savior": "mmtbs",
+  "Silent Hill (ft. Kodak Black)": "mmtbs",
+  "The Heart Part 5": "mmtbs",
+  "United in Grief": "mmtbs",
+  "WE CRY TOGETHER (ft. Taylour Paige)": "mmtbs",
+  
+  // gnx - gnx.jpg
+  "dodger blue": "gnx",
+  "gnx": "gnx",
+  "gloria": "gnx",
+  "heart pt. 6": "gnx",
+  "hey now": "gnx",
+  "luther": "gnx",
+  "man at the garden": "gnx",
+  "peekaboo": "gnx",
+  "squabble up": "gnx",
+  "tv off": "gnx",
+  "wacced out murals": "gnx",
+  
+  // Other/Singles - kendrick.jpg
+  "All The Stars": "kendrick",
+  "euphoria": "kendrick",
+  "Not Like Us": "kendrick",
+  "Prayer": "kendrick"
+};
+
+// Kanye West songs list
+const KANYE_SONGS = [
+  // The College Dropout
+  "All Falls Down",
+  "Family Business",
+  "Jesus Walks",
+  "Last Call",
+  "Never Let Me Down",
+  "Slow Jamz",
+  "Spaceship",
+  "Through The Wire",
+  "Two Words",
+  "We Don't Care",
+  
+  // Late Registration
+  "Celebration",
+  "Diamonds From Sierra Leone (ft. JAY-Z)",
+  "Gold Digger (ft. Jamie Foxx)",
+  "Heard 'Em Say (ft. Adam Levine)",
+  "Hey Mama",
+  "Late",
+  "Roses",
+  "Touch The Sky (ft. Lupe Fiasco)",
+  "We Major (ft. Nas & Really Doe)",
+  
+  // Graduation
+  "Can't Tell Me Nothing",
+  "Champion",
+  "Everything I Am",
+  "Flashing Lights",
+  "Good Life",
+  "Good Morning",
+  "Good Night",
+  "Homecoming",
+  "I Wonder",
+  "Stronger",
+  "The Glory",
+  
+  // 808's & Heartbreak
+  "Coldest Winter",
+  "Heartless",
+  "Love Lockdown",
+  "Paranoid",
+  "RoboCop",
+  "Welcome To Heartbreak",
+  
+  // My Beautiful Dark Twisted Fantasy
+  "All Of The Lights",
+  "Dark Fantasy",
+  "Devil In A New Dress",
+  "Gorgeous",
+  "Monster",
+  "POWER",
+  "Runaway",
+  "So Appalled",
+  
+  // Yeezus
+  "Black Skinhead",
+  "Bound 2",
+  "Hold My Liquor",
+  "On Sight",
+  
+  // The Life Of Pablo
+  "Famous",
+  "Father Stretch My Hands Pt. 1",
+  "I Love Kanye",
+  "No More Parties In LA",
+  "Pt. 2",
+  "Saint Pablo",
+  "Ultralight Beam",
+  "Waves",
+  
+  // Ye
+  "All Mine",
+  "Ghost Town",
+  "Violent Crimes",
+  
+  // Donda
+  "Believe What I Say",
+  "Hurricane",
+  "Moon",
+  "Off The Grid",
+  "Ok Ok",
+  "Praise God",
+  "Pure Souls",
+  "Remote Control",
+  
+  // Other/Singles
+  "530",
+  "BURN",
+  "DO IT",
+  "GUN TO MY HEAD (ft. Kid Cudi)",
+  "Mama's Boyfriend",
+  "New Body (ft. Nicki Minaj & Ty Dolla $ign)",
+  "RIVER",
+  "Throw Money Everywhere",
+  "White Dress"
+];
+
+// Kanye West album mapping
+const KANYE_ALBUM_COVERS = {
+  // The College Dropout - tcd.jpg
+  "All Falls Down": "tcd",
+  "Family Business": "tcd",
+  "Jesus Walks": "tcd",
+  "Last Call": "tcd",
+  "Never Let Me Down": "tcd",
+  "Slow Jamz": "tcd",
+  "Spaceship": "tcd",
+  "Through The Wire": "tcd",
+  "Two Words": "tcd",
+  "We Don't Care": "tcd",
+  
+  // Late Registration - late.jpg
+  "Celebration": "late",
+  "Diamonds From Sierra Leone (ft. JAY-Z)": "late",
+  "Gold Digger (ft. Jamie Foxx)": "late",
+  "Heard 'Em Say (ft. Adam Levine)": "late",
+  "Hey Mama": "late",
+  "Late": "late",
+  "Roses": "late",
+  "Touch The Sky (ft. Lupe Fiasco)": "late",
+  "We Major (ft. Nas & Really Doe)": "late",
+  
+  // Graduation - graduation.jpg
+  "Can't Tell Me Nothing": "graduation",
+  "Champion": "graduation",
+  "Everything I Am": "graduation",
+  "Flashing Lights": "graduation",
+  "Good Life": "graduation",
+  "Good Morning": "graduation",
+  "Good Night": "graduation",
+  "Homecoming": "graduation",
+  "I Wonder": "graduation",
+  "Stronger": "graduation",
+  "The Glory": "graduation",
+  
+  // 808's & Heartbreak - 808.jpg
+  "Coldest Winter": "808",
+  "Heartless": "808",
+  "Love Lockdown": "808",
+  "Paranoid": "808",
+  "RoboCop": "808",
+  "Welcome To Heartbreak": "808",
+  
+  // My Beautiful Dark Twisted Fantasy - mbdtf.jpg
+  "All Of The Lights": "mbdtf",
+  "Dark Fantasy": "mbdtf",
+  "Devil In A New Dress": "mbdtf",
+  "Gorgeous": "mbdtf",
+  "Monster": "mbdtf",
+  "POWER": "mbdtf",
+  "Runaway": "mbdtf",
+  "So Appalled": "mbdtf",
+  
+  // Yeezus - yeezus.jpg
+  "Black Skinhead": "yeezus",
+  "Bound 2": "yeezus",
+  "Hold My Liquor": "yeezus",
+  "On Sight": "yeezus",
+  
+  // The Life Of Pablo - tlop.jpg
+  "Famous": "tlop",
+  "Father Stretch My Hands Pt. 1": "tlop",
+  "I Love Kanye": "tlop",
+  "No More Parties In LA": "tlop",
+  "Pt. 2": "tlop",
+  "Saint Pablo": "tlop",
+  "Ultralight Beam": "tlop",
+  "Waves": "tlop",
+  
+  // Ye - ye.jpg
+  "All Mine": "ye",
+  "Ghost Town": "ye",
+  "Violent Crimes": "ye",
+  
+  // Donda - donda.jpg
+  "Believe What I Say": "donda",
+  "Hurricane": "donda",
+  "Moon": "donda",
+  "Off The Grid": "donda",
+  "Ok Ok": "donda",
+  "Praise God": "donda",
+  "Pure Souls": "donda",
+  "Remote Control": "donda",
+  
+  // Other/Singles - kanye.jpg
+  "530": "kanye",
+  "BURN": "kanye",
+  "DO IT": "kanye",
+  "GUN TO MY HEAD (ft. Kid Cudi)": "kanye",
+  "Mama's Boyfriend": "kanye",
+  "New Body (ft. Nicki Minaj & Ty Dolla $ign)": "kanye",
+  "RIVER": "kanye",
+  "Throw Money Everywhere": "kanye",
+  "White Dress": "kanye"
+};
+
+// All Rappers mode: combines all artist songs
+const ALL_RAPPERS_SONGS = [...SONGS, ...DRAKE_SONGS, ...LILTECCA_SONGS, ...LILBABY_SONGS, ...KENDRICK_SONGS, ...KANYE_SONGS];
+
+// All Rappers mode: combines album covers from all artists
 const ALL_RAPPERS_ALBUM_COVERS = {
   ...ALBUM_COVERS,
   ...DRAKE_ALBUM_COVERS,
   ...LILTECCA_ALBUM_COVERS,
-  ...LILBABY_ALBUM_COVERS
+  ...LILBABY_ALBUM_COVERS,
+  ...KENDRICK_ALBUM_COVERS,
+  ...KANYE_ALBUM_COVERS
 };
 
 // Helper function to determine which artist(s) a song belongs to
@@ -1353,6 +1743,12 @@ function getArtistsForSong(songName) {
     }
     if (LILBABY_SONGS.includes(songName)) {
         artists.push('lilbaby');
+    }
+    if (KENDRICK_SONGS.includes(songName)) {
+        artists.push('kendrick');
+    }
+    if (KANYE_SONGS.includes(songName)) {
+        artists.push('kanye');
     }
     return artists;
 }
@@ -1386,6 +1782,12 @@ function getSongsForArtist(artist) {
         if (selectedRappers.includes('lilbaby')) {
             songs.push(...LILBABY_SONGS);
         }
+        if (selectedRappers.includes('kendrick')) {
+            songs.push(...KENDRICK_SONGS);
+        }
+        if (selectedRappers.includes('kanye')) {
+            songs.push(...KANYE_SONGS);
+        }
         return songs;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
@@ -1395,6 +1797,10 @@ function getSongsForArtist(artist) {
         return LILTECCA_SONGS;
     } else if (artist === 'lilbaby') {
         return LILBABY_SONGS;
+    } else if (artist === 'kendrick') {
+        return KENDRICK_SONGS;
+    } else if (artist === 'kanye') {
+        return KANYE_SONGS;
     }
     return SONGS;
 }
@@ -1415,6 +1821,12 @@ function getAlbumMapForArtist(artist) {
         if (selectedRappers.includes('lilbaby')) {
             Object.assign(covers, LILBABY_ALBUM_COVERS);
         }
+        if (selectedRappers.includes('kendrick')) {
+            Object.assign(covers, KENDRICK_ALBUM_COVERS);
+        }
+        if (selectedRappers.includes('kanye')) {
+            Object.assign(covers, KANYE_ALBUM_COVERS);
+        }
         return covers;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
@@ -1424,6 +1836,10 @@ function getAlbumMapForArtist(artist) {
         return LILTECCA_ALBUM_COVERS;
     } else if (artist === 'lilbaby') {
         return LILBABY_ALBUM_COVERS;
+    } else if (artist === 'kendrick') {
+        return KENDRICK_ALBUM_COVERS;
+    } else if (artist === 'kanye') {
+        return KANYE_ALBUM_COVERS;
     }
     return ALBUM_COVERS;
 }
