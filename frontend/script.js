@@ -1533,7 +1533,7 @@ const KANYE_SONGS = [
   "Celebration",
   "Diamonds From Sierra Leone (ft. JAY-Z)",
   "Gold Digger (ft. Jamie Foxx)",
-  "Heard 'Em Say (ft. Adam Levine)",
+  "Heard 'Em Say (feat. Adam Levine)",
   "Hey Mama",
   "Late",
   "Roses",
@@ -1606,7 +1606,7 @@ const KANYE_SONGS = [
   "530",
   "BURN",
   "DO IT",
-  "GUN TO MY HEAD (ft. Kid Cudi)",
+  "GUN TO MY HEAD - ¥$, Kanye West, Ty Dolla $ign (ft. Kid Cudi)",
   "Mama's Boyfriend",
   "New Body (ft. Nicki Minaj & Ty Dolla $ign)",
   "RIVER",
@@ -1632,7 +1632,7 @@ const KANYE_ALBUM_COVERS = {
   "Celebration": "late",
   "Diamonds From Sierra Leone (ft. JAY-Z)": "late",
   "Gold Digger (ft. Jamie Foxx)": "late",
-  "Heard 'Em Say (ft. Adam Levine)": "late",
+  "Heard 'Em Say (feat. Adam Levine)": "late",
   "Hey Mama": "late",
   "Late": "late",
   "Roses": "late",
@@ -1705,7 +1705,7 @@ const KANYE_ALBUM_COVERS = {
   "530": "kanye",
   "BURN": "kanye",
   "DO IT": "kanye",
-  "GUN TO MY HEAD (ft. Kid Cudi)": "kanye",
+  "GUN TO MY HEAD - ¥$, Kanye West, Ty Dolla $ign (ft. Kid Cudi)": "kanye",
   "Mama's Boyfriend": "kanye",
   "New Body (ft. Nicki Minaj & Ty Dolla $ign)": "kanye",
   "RIVER": "kanye",
@@ -1935,7 +1935,8 @@ let speedState = {
     timer: 0,
     timerInterval: null,
     gameOver: false,
-    songsPlayed: [] // Track songs to avoid repeats
+    songsPlayed: [], // Track songs to avoid repeats
+    songQueue: [] // Pre-selected 15 songs for speed mode
 };
 
 // ---------------------------
@@ -2424,6 +2425,18 @@ async function startSpeedGame() {
     // Ensure selectedArtist is set from localStorage if not already set
     ensureArtistSelected();
     
+    // Get songs for this artist
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    
+    // Pre-select 15 unique songs if artist has 15+ songs, otherwise use old behavior
+    let songQueue = [];
+    if (songs.length >= 15) {
+        // Shuffle and select 15 unique songs
+        const shuffled = [...songs].sort(() => Math.random() - 0.5);
+        songQueue = shuffled.slice(0, 15);
+    }
+    // If artist has fewer than 15 songs, songQueue stays empty and we'll use old behavior
+    
     // Reset state for new game
     speedState = {
         currentSong: null,
@@ -2440,7 +2453,8 @@ async function startSpeedGame() {
         timer: 0,
         timerInterval: null,
         gameOver: false,
-        songsPlayed: []
+        songsPlayed: [],
+        songQueue: songQueue // Store pre-selected songs
     };
     
     // Reset UI
@@ -2470,17 +2484,24 @@ async function startSpeedRound() {
     // Ensure selectedArtist is set from localStorage if not already set
     ensureArtistSelected();
     
-    // Select a random song that hasn't been played yet
-    const songs = getSongsForArtist(selectedArtist || 'travis');
-    let availableSongs = songs.filter(s => !speedState.songsPlayed.includes(s));
-    if (availableSongs.length === 0) {
-        // Reset if all songs used
-        speedState.songsPlayed = [];
-        availableSongs = songs;
+    // Select song based on whether we have a pre-selected queue
+    let songName;
+    if (speedState.songQueue && speedState.songQueue.length > 0) {
+        // Use pre-selected queue (artist has 15+ songs)
+        songName = speedState.songQueue[speedState.round - 1];
+        speedState.songsPlayed.push(songName);
+    } else {
+        // Old behavior: random selection (artist has fewer than 15 songs, like bbbm)
+        const songs = getSongsForArtist(selectedArtist || 'travis');
+        let availableSongs = songs.filter(s => !speedState.songsPlayed.includes(s));
+        if (availableSongs.length === 0) {
+            // Reset if all songs used
+            speedState.songsPlayed = [];
+            availableSongs = songs;
+        }
+        songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
+        speedState.songsPlayed.push(songName);
     }
-    
-    const songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
-    speedState.songsPlayed.push(songName);
     
     // In "choose rappers" mode, determine which artist this song belongs to
     let songArtist = null;
