@@ -3189,6 +3189,36 @@ socket.on("playerJoined", data => {
     }
 });
 
+// Countdown function for H2H mode
+function startH2HCountdown(callback) {
+    const countdownOverlay = document.getElementById("h2hCountdown");
+    const countdownNumber = document.getElementById("h2hCountdownNumber");
+    
+    if (!countdownOverlay || !countdownNumber) return;
+    
+    countdownOverlay.style.display = "flex";
+    let count = 3;
+    
+    const countdownInterval = setInterval(() => {
+        countdownNumber.textContent = count;
+        countdownNumber.style.animation = "none";
+        // Trigger reflow to restart animation
+        void countdownNumber.offsetWidth;
+        countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
+        
+        if (count <= 1) {
+            clearInterval(countdownInterval);
+            countdownOverlay.style.display = "none";
+            if (callback) callback();
+        }
+        count--;
+    }, 1000);
+    
+    // Show initial 3
+    countdownNumber.textContent = 3;
+    countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
+}
+
 socket.on("gameStart", data => {
     console.log("Received gameStart event:", data, "Current state:", h2hState);
     
@@ -3230,7 +3260,7 @@ socket.on("gameStart", data => {
         lobbyTextEl.innerText = "Lobby: " + h2hState.lobbyId;
     }
     if (statusEl) {
-        statusEl.textContent = "Game started!";
+        statusEl.textContent = "Game starting...";
     }
     
     document.getElementById("h2hStrikes").textContent = "0/6 strikes";
@@ -3238,10 +3268,11 @@ socket.on("gameStart", data => {
     document.getElementById("h2hFeedback").className = "feedback";
     document.getElementById("h2hGuessInput").value = "";
     updateScoreDisplay();
-    enableGameControls();
+    
+    // Disable controls during countdown
+    disableGameControls();
     document.getElementById("h2hNewGame").disabled = true;
-    document.getElementById("h2hRequestNewSong").disabled = false;
-    document.getElementById("h2hPlay").textContent = "Play";
+    document.getElementById("h2hRequestNewSong").disabled = true;
     
     // Reset progress bars
     for (let i = 1; i <= 6; i++) {
@@ -3266,6 +3297,17 @@ socket.on("gameStart", data => {
     }
     getSongDuration(data.song, songArtist).then(duration => {
         h2hState.songDuration = duration;
+    });
+    
+    // Start countdown, then enable controls after countdown
+    startH2HCountdown(() => {
+        if (statusEl) {
+            statusEl.textContent = "Game started!";
+        }
+        enableGameControls();
+        document.getElementById("h2hNewGame").disabled = true;
+        document.getElementById("h2hRequestNewSong").disabled = false;
+        document.getElementById("h2hPlay").textContent = "Play";
     });
     
     // Setup chat resize functionality after DOM is ready
