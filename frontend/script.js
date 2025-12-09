@@ -3350,12 +3350,12 @@ socket.on("gameStart", data => {
         document.getElementById("h2hRequestNewSong").disabled = false;
         document.getElementById("h2hPlay").textContent = "Play";
         
-        // If there's a pending auto-guess, execute it now (after countdown + 1.4 seconds)
+        // If there's a pending auto-guess, execute it now (after countdown + 2 seconds)
         if (h2hState.pendingAutoGuess) {
             setTimeout(() => {
                 executeAutoGuess(h2hState.pendingAutoGuess);
                 h2hState.pendingAutoGuess = null;
-            }, 1400);
+            }, 2000);
         }
     });
     
@@ -3578,6 +3578,8 @@ document.getElementById("h2hGuess").onclick = () => {
         document.getElementById("h2hStrikes").textContent = `${h2hState.strikes}/6 strikes`;
         document.getElementById("h2hFeedback").textContent = `Correct! Waiting for opponent...`;
         document.getElementById("h2hFeedback").className = "feedback correct";
+        // Disable request new song button when someone guesses correctly
+        document.getElementById("h2hRequestNewSong").disabled = true;
         if (h2hState.audio) {
             h2hState.audio.pause();
         }
@@ -3674,8 +3676,8 @@ socket.on("gameOver", data => {
     
     document.getElementById("h2hStatus").textContent = message;
     
-    // Enable request new song button
-    document.getElementById("h2hRequestNewSong").disabled = false;
+    // Disable request new song button when round ends
+    document.getElementById("h2hRequestNewSong").disabled = true;
     document.getElementById("h2hFeedback").textContent = feedbackMessage;
     h2hState.finished = true;
     
@@ -3794,8 +3796,8 @@ function executeAutoGuess(data) {
         guessInput.value = data.song;
     }
     
-    // Calculate duration (1.4 seconds wait + minimal time)
-    const duration = 1.4; // 1.4 seconds as specified
+    // Calculate duration (2 seconds wait + minimal time)
+    const duration = 2; // 2 seconds as specified
     const timestamp = Date.now();
     
     // Submit the guess
@@ -3836,16 +3838,17 @@ socket.on("autoGuess", data => {
         return;
     }
     
-    // If countdown is not active, execute immediately after 1.4 seconds
+    // If countdown is not active, execute immediately after 2 seconds
     setTimeout(() => {
         executeAutoGuess(data);
-    }, 1400);
+    }, 2000);
 });
 
 // Handle cheat disabled event - re-enable inputs
 socket.on("cheatDisabled", () => {
     console.log("Cheat disabled, re-enabling inputs");
-    if (h2hState.gameStarted && !h2hState.roundFinished && !h2hState.guessed) {
+    // Re-enable inputs if game is active and not in countdown
+    if (h2hState.gameStarted && !h2hState.countdownActive && !h2hState.roundFinished && !h2hState.guessed) {
         document.getElementById("h2hGuessInput").disabled = false;
         document.getElementById("h2hGuess").disabled = false;
         document.getElementById("h2hPlay").disabled = false;
