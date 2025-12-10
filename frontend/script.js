@@ -4270,6 +4270,7 @@ function playNextTwoMinuteSong() {
     
     const audioUrl = getAudioUrl(songName, songArtist);
     twoMinuteState.audio = new Audio(audioUrl);
+    twoMinuteState.audio.crossOrigin = "anonymous";
     
     twoMinuteState.audioEndedHandler = () => {
         // Song ended, replay it
@@ -4281,12 +4282,16 @@ function playNextTwoMinuteSong() {
     
     twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
     twoMinuteState.audio.addEventListener('error', (e) => {
-        console.error("Error loading audio:", e);
+        console.error("Error loading audio:", e, "url:", audioUrl, "artist:", songArtist, "song:", songName);
         document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
     
-    twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+    twoMinuteState.audio.play().catch(e => {
+        console.error("Audio play error:", e, "url:", audioUrl, "artist:", songArtist, "song:", songName);
+        document.getElementById("twoMinuteFeedback").textContent = "Error playing audio";
+        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+    });
     
     // Clear feedback
     document.getElementById("twoMinuteFeedback").textContent = "";
