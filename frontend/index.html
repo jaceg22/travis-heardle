@@ -128,6 +128,7 @@
         <div class="mode-option">
             <h3>Speed</h3>
             <button id="speedBtn" class="mode-btn">Speed Mode</button>
+            <button id="twoMinuteBtn" class="mode-btn">2 Minute</button>
         </div>
     </div>
     <div class="user-info">
@@ -319,6 +320,56 @@
         <h2>Speed Mode Leaderboard</h2>
         <button id="leaderboardBack" class="home-btn-top">Back</button>
         <div id="leaderboardList" class="leaderboard-list">
+            <!-- Leaderboard entries will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- 2 MINUTE MODE -->
+<div id="twoMinuteGame" style="display:none;">
+    <div class="game-header">
+        <button id="twoMinuteHome" class="home-btn-top">Home</button>
+        <div class="two-minute-info">
+            <span id="twoMinuteTimer" class="timer-display">2:00.00</span>
+            <span id="twoMinuteSongsGuessed" class="songs-guessed-display">Songs Guessed: 0</span>
+        </div>
+    </div>
+
+    <div class="two-minute-controls-container">
+        <button id="twoMinuteStart" class="control-btn">Start</button>
+        <button id="twoMinuteGuess" class="control-btn" disabled>Guess</button>
+        <button id="twoMinuteSkip" class="control-btn" disabled>Skip (-5s)</button>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="twoMinuteGuessInput" placeholder="Your Guess" autocomplete="off" disabled>
+            <div id="twoMinuteAutocomplete" class="autocomplete-list"></div>
+        </div>
+    </div>
+
+    <div id="twoMinuteFeedback" class="feedback"></div>
+    <button id="twoMinuteLeaderboardBtn" class="leaderboard-btn-speed">View Leaderboard</button>
+</div>
+
+<!-- 2 MINUTE MODE GAME OVER -->
+<div id="twoMinuteGameOver" style="display:none;">
+    <div class="game-over-container">
+        <h2 id="twoMinuteGameOverTitle">Time's Up!</h2>
+        <p id="twoMinuteGameOverMessage"></p>
+        <div class="game-over-buttons">
+            <button id="twoMinuteRestart" class="new-game-btn">Try Again</button>
+            <button id="twoMinuteGameOverHome" class="new-game-btn">Home</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2 MINUTE LEADERBOARD -->
+<div id="twoMinuteLeaderboard" style="display:none;">
+    <div class="leaderboard-container">
+        <h2>2 Minute Mode Leaderboard</h2>
+        <button id="twoMinuteLeaderboardBack" class="home-btn-top">Back</button>
+        <div id="twoMinuteLeaderboardList" class="leaderboard-list">
             <!-- Leaderboard entries will be populated here -->
         </div>
     </div>

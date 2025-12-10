@@ -151,6 +151,9 @@ function showHomePage() {
     document.getElementById("speedGame").style.display = "none";
     document.getElementById("speedGameOver").style.display = "none";
     document.getElementById("speedLeaderboard").style.display = "none";
+    document.getElementById("twoMinuteGame").style.display = "none";
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    document.getElementById("twoMinuteLeaderboard").style.display = "none";
     
     // Update title based on selected artist
     if (selectedArtist === 'drake') {
@@ -1941,6 +1944,20 @@ let speedState = {
     songQueue: [] // Pre-selected 15 songs for speed mode
 };
 
+let twoMinuteState = {
+    currentSong: null,
+    audio: null,
+    guessed: false,
+    songsGuessed: 0,
+    timeRemaining: 120000, // 2 minutes in milliseconds
+    timerInterval: null,
+    gameStarted: false,
+    gameOver: false,
+    songQueue: [], // Shuffled list of songs
+    currentSongIndex: 0,
+    audioEndedHandler: null
+};
+
 // ---------------------------
 // DOM ELEMENTS
 // ---------------------------
@@ -2031,6 +2048,14 @@ document.getElementById("speedBtn").onclick = () => {
     home.style.display = "none";
     speedGame.style.display = "block";
     startSpeedGame();
+};
+
+document.getElementById("twoMinuteBtn").onclick = () => {
+    currentMode = 'twoMinute';
+    home.style.display = "none";
+    document.getElementById("twoMinuteGame").style.display = "block";
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    resetTwoMinuteGame();
 };
 
 document.getElementById("h2hMenuHome").onclick = () => {
@@ -3982,6 +4007,42 @@ function setupAutocomplete(inputId, listId) {
     });
 }
 
+function showAutocomplete(mode, matches, onSelect) {
+    let listId;
+    if (mode === "solo") {
+        listId = "soloAutocomplete";
+    } else if (mode === "h2h") {
+        listId = "h2hAutocomplete";
+    } else if (mode === "speed") {
+        listId = "speedAutocomplete";
+    } else if (mode === "twoMinute") {
+        listId = "twoMinuteAutocomplete";
+    } else {
+        return;
+    }
+    
+    const list = document.getElementById(listId);
+    if (!list) return;
+    
+    if (matches.length === 0) {
+        list.style.display = "none";
+        return;
+    }
+    
+    list.innerHTML = "";
+    matches.forEach(song => {
+        const item = document.createElement("div");
+        item.className = "autocomplete-item";
+        item.textContent = song;
+        item.onclick = () => {
+            if (onSelect) onSelect(song);
+        };
+        list.appendChild(item);
+    });
+    
+    list.style.display = "block";
+}
+
 function hideAutocomplete(mode) {
     let listId;
     if (mode === "solo") {
@@ -3990,6 +4051,8 @@ function hideAutocomplete(mode) {
         listId = "h2hAutocomplete";
     } else if (mode === "speed") {
         listId = "speedAutocomplete";
+    } else if (mode === "twoMinute") {
+        listId = "twoMinuteAutocomplete";
     } else {
         return;
     }
@@ -4043,6 +4106,404 @@ function showSongResultModal(songName, resultMessage, isCorrect) {
 function hideSongResultModal() {
     const modal = document.getElementById("songResultModal");
     modal.style.display = "none";
+}
+
+// ---------------------------
+// 2 MINUTE MODE
+// ---------------------------
+
+function resetTwoMinuteGame() {
+    // Stop any ongoing game
+    if (twoMinuteState.audio) {
+        twoMinuteState.audio.pause();
+        twoMinuteState.audio = null;
+    }
+    if (twoMinuteState.timerInterval) {
+        clearInterval(twoMinuteState.timerInterval);
+    }
+    if (twoMinuteState.audioEndedHandler && twoMinuteState.audio) {
+        twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+    }
+    
+    // Reset state
+    twoMinuteState = {
+        currentSong: null,
+        audio: null,
+        guessed: false,
+        songsGuessed: 0,
+        timeRemaining: 120000,
+        timerInterval: null,
+        gameStarted: false,
+        gameOver: false,
+        songQueue: [],
+        currentSongIndex: 0,
+        audioEndedHandler: null
+    };
+    
+    // Reset UI
+    document.getElementById("twoMinuteTimer").textContent = "2:00.00";
+    document.getElementById("twoMinuteSongsGuessed").textContent = "Songs Guessed: 0";
+    document.getElementById("twoMinuteFeedback").textContent = "";
+    document.getElementById("twoMinuteFeedback").className = "feedback";
+    document.getElementById("twoMinuteGuessInput").value = "";
+    document.getElementById("twoMinuteStart").disabled = false;
+    document.getElementById("twoMinuteGuess").disabled = true;
+    document.getElementById("twoMinuteSkip").disabled = true;
+    document.getElementById("twoMinuteGuessInput").disabled = true;
+    hideAutocomplete("twoMinute");
+}
+
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+function initializeTwoMinuteSongQueue() {
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    twoMinuteState.songQueue = shuffleArray(songs);
+    twoMinuteState.currentSongIndex = 0;
+}
+
+function startTwoMinuteGame() {
+    if (twoMinuteState.gameStarted) return;
+    
+    twoMinuteState.gameStarted = true;
+    twoMinuteState.timeRemaining = 120000; // 2 minutes
+    twoMinuteState.songsGuessed = 0;
+    
+    // Initialize song queue
+    initializeTwoMinuteSongQueue();
+    
+    // Enable/disable buttons
+    document.getElementById("twoMinuteStart").disabled = true;
+    document.getElementById("twoMinuteGuess").disabled = false;
+    document.getElementById("twoMinuteSkip").disabled = false;
+    document.getElementById("twoMinuteGuessInput").disabled = false;
+    
+    // Start timer
+    updateTwoMinuteTimer();
+    twoMinuteState.timerInterval = setInterval(updateTwoMinuteTimer, 10); // Update every 10ms for precision
+    
+    // Start first song
+    playNextTwoMinuteSong();
+}
+
+function updateTwoMinuteTimer() {
+    if (twoMinuteState.timeRemaining <= 0) {
+        twoMinuteState.timeRemaining = 0;
+        endTwoMinuteGame();
+        return;
+    }
+    
+    const minutes = Math.floor(twoMinuteState.timeRemaining / 60000);
+    const seconds = Math.floor((twoMinuteState.timeRemaining % 60000) / 1000);
+    const centiseconds = Math.floor((twoMinuteState.timeRemaining % 1000) / 10);
+    
+    document.getElementById("twoMinuteTimer").textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+}
+
+function playNextTwoMinuteSong() {
+    if (twoMinuteState.gameOver || twoMinuteState.timeRemaining <= 0) return;
+    
+    // If we've used all songs, reshuffle
+    if (twoMinuteState.currentSongIndex >= twoMinuteState.songQueue.length) {
+        initializeTwoMinuteSongQueue();
+    }
+    
+    const songName = twoMinuteState.songQueue[twoMinuteState.currentSongIndex];
+    twoMinuteState.currentSong = songName;
+    twoMinuteState.guessed = false;
+    
+    // Determine artist for this song
+    let songArtist = null;
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        }
+    } else {
+        songArtist = selectedArtist;
+    }
+    
+    // Load and play audio
+    if (twoMinuteState.audio) {
+        twoMinuteState.audio.pause();
+        if (twoMinuteState.audioEndedHandler) {
+            twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+        }
+    }
+    
+    const audioUrl = getAudioUrl(songName, songArtist);
+    twoMinuteState.audio = new Audio(audioUrl);
+    
+    twoMinuteState.audioEndedHandler = () => {
+        // Song ended, replay it
+        if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+            twoMinuteState.audio.currentTime = 0;
+            twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+        }
+    };
+    
+    twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
+    twoMinuteState.audio.addEventListener('error', (e) => {
+        console.error("Error loading audio:", e);
+        document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
+        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+    });
+    
+    twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+    
+    // Clear feedback
+    document.getElementById("twoMinuteFeedback").textContent = "";
+    document.getElementById("twoMinuteFeedback").className = "feedback";
+    document.getElementById("twoMinuteGuessInput").value = "";
+    hideAutocomplete("twoMinute");
+}
+
+function skipTwoMinuteSong() {
+    if (!twoMinuteState.gameStarted || twoMinuteState.guessed || twoMinuteState.gameOver) return;
+    
+    // Deduct 5 seconds
+    twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 5000);
+    
+    // Move to next song
+    twoMinuteState.currentSongIndex++;
+    playNextTwoMinuteSong();
+}
+
+function handleTwoMinuteGuess() {
+    if (!twoMinuteState.gameStarted || twoMinuteState.guessed || twoMinuteState.gameOver) return;
+    
+    const guess = document.getElementById("twoMinuteGuessInput").value.trim();
+    if (!guess) return;
+    
+    // Check if song exists in list
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let matchedSong = null;
+    for (const song of songs) {
+        if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
+            matchedSong = song;
+            break;
+        }
+    }
+    
+    if (!matchedSong) {
+        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again.`;
+        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+        document.getElementById("twoMinuteGuessInput").value = "";
+        hideAutocomplete("twoMinute");
+        return;
+    }
+    
+    // Check if it's the correct song
+    if (matchedSong.toLowerCase() === twoMinuteState.currentSong.toLowerCase()) {
+        // Correct guess!
+        twoMinuteState.guessed = true;
+        twoMinuteState.songsGuessed++;
+        document.getElementById("twoMinuteSongsGuessed").textContent = `Songs Guessed: ${twoMinuteState.songsGuessed}`;
+        document.getElementById("twoMinuteFeedback").textContent = "Correct!";
+        document.getElementById("twoMinuteFeedback").className = "feedback correct";
+        
+        // Stop current song
+        if (twoMinuteState.audio) {
+            twoMinuteState.audio.pause();
+            if (twoMinuteState.audioEndedHandler) {
+                twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+            }
+        }
+        
+        // Move to next song immediately
+        twoMinuteState.currentSongIndex++;
+        setTimeout(() => {
+            if (!twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+                playNextTwoMinuteSong();
+            }
+        }, 500); // Small delay for feedback
+        
+        hideAutocomplete("twoMinute");
+    } else {
+        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again.`;
+        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+        document.getElementById("twoMinuteGuessInput").value = "";
+        hideAutocomplete("twoMinute");
+    }
+}
+
+function endTwoMinuteGame() {
+    if (twoMinuteState.gameOver) return;
+    
+    twoMinuteState.gameOver = true;
+    twoMinuteState.gameStarted = false;
+    
+    // Stop timer
+    if (twoMinuteState.timerInterval) {
+        clearInterval(twoMinuteState.timerInterval);
+        twoMinuteState.timerInterval = null;
+    }
+    
+    // Stop audio
+    if (twoMinuteState.audio) {
+        twoMinuteState.audio.pause();
+        if (twoMinuteState.audioEndedHandler) {
+            twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+        }
+        twoMinuteState.audio = null;
+    }
+    
+    // Disable controls
+    document.getElementById("twoMinuteGuess").disabled = true;
+    document.getElementById("twoMinuteSkip").disabled = true;
+    document.getElementById("twoMinuteGuessInput").disabled = true;
+    
+    // Show game over screen
+    document.getElementById("twoMinuteGame").style.display = "none";
+    document.getElementById("twoMinuteGameOver").style.display = "block";
+    document.getElementById("twoMinuteGameOverMessage").textContent = 
+        `You guessed ${twoMinuteState.songsGuessed} song${twoMinuteState.songsGuessed !== 1 ? 's' : ''} in 2 minutes!`;
+    
+    // Save to leaderboard if logged in
+    if (currentUser && currentUser.id) {
+        saveTwoMinuteScore(twoMinuteState.songsGuessed);
+    }
+}
+
+// Button handlers
+document.getElementById("twoMinuteStart").onclick = startTwoMinuteGame;
+document.getElementById("twoMinuteSkip").onclick = skipTwoMinuteSong;
+document.getElementById("twoMinuteGuess").onclick = handleTwoMinuteGuess;
+
+document.getElementById("twoMinuteGuessInput").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        handleTwoMinuteGuess();
+    }
+});
+
+// Autocomplete for 2 minute mode
+document.getElementById("twoMinuteGuessInput").addEventListener("input", (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    if (!query) {
+        hideAutocomplete("twoMinute");
+        return;
+    }
+    
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    const matches = songs.filter(song => 
+        song.toLowerCase().includes(query)
+    ).slice(0, 5);
+    
+    showAutocomplete("twoMinute", matches, (selectedSong) => {
+        document.getElementById("twoMinuteGuessInput").value = selectedSong;
+        hideAutocomplete("twoMinute");
+        handleTwoMinuteGuess();
+    });
+});
+
+document.getElementById("twoMinuteHome").onclick = () => {
+    resetTwoMinuteGame();
+    document.getElementById("twoMinuteGame").style.display = "none";
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    home.style.display = "block";
+    currentMode = null;
+};
+
+document.getElementById("twoMinuteRestart").onclick = () => {
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    document.getElementById("twoMinuteGame").style.display = "block";
+    resetTwoMinuteGame();
+};
+
+document.getElementById("twoMinuteGameOverHome").onclick = () => {
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    home.style.display = "block";
+    currentMode = null;
+    resetTwoMinuteGame();
+};
+
+// Leaderboard functions
+async function saveTwoMinuteScore(songsGuessed) {
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/two-minute-leaderboard`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                user_id: currentUser.id,
+                username: currentUser.username,
+                songs_guessed: songsGuessed,
+                artist: selectedArtist || 'travis'
+            })
+        });
+        
+        if (!response.ok) {
+            console.error("Failed to save 2 minute score");
+        }
+    } catch (error) {
+        console.error("Error saving 2 minute score:", error);
+    }
+}
+
+async function loadTwoMinuteLeaderboard() {
+    try {
+        const artist = selectedArtist || 'travis';
+        const response = await fetch(`${BACKEND_URL}/api/two-minute-leaderboard?artist=${artist}`);
+        const data = await response.json();
+        
+        if (data.leaderboard) {
+            const list = document.getElementById("twoMinuteLeaderboardList");
+            list.innerHTML = "";
+            
+            if (data.leaderboard.length === 0) {
+                list.innerHTML = "<p>No scores yet!</p>";
+                return;
+            }
+            
+            data.leaderboard.forEach((entry, index) => {
+                const div = document.createElement("div");
+                div.className = "leaderboard-entry";
+                div.innerHTML = `
+                    <span class="leaderboard-rank">${index + 1}</span>
+                    <span class="leaderboard-username">${entry.username}</span>
+                    <span class="leaderboard-score">${entry.songs_guessed} songs</span>
+                `;
+                list.appendChild(div);
+            });
+        }
+    } catch (error) {
+        console.error("Error loading 2 minute leaderboard:", error);
+        document.getElementById("twoMinuteLeaderboardList").innerHTML = "<p>Error loading leaderboard</p>";
+    }
+}
+
+document.getElementById("twoMinuteLeaderboardBtn").onclick = () => {
+    document.getElementById("twoMinuteGame").style.display = "none";
+    document.getElementById("twoMinuteLeaderboard").style.display = "block";
+    loadTwoMinuteLeaderboard();
+};
+
+document.getElementById("twoMinuteLeaderboardBack").onclick = () => {
+    document.getElementById("twoMinuteLeaderboard").style.display = "none";
+    document.getElementById("twoMinuteGame").style.display = "block";
+};
+
+// Update showLoginPage and showHomePage to include 2 minute mode
+function showLoginPage() {
+    document.getElementById("loginPage").style.display = "block";
+    document.getElementById("artistSelection").style.display = "none";
+    document.getElementById("chooseRappers").style.display = "none";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("soloGame").style.display = "none";
+    document.getElementById("h2hMenu").style.display = "none";
+    document.getElementById("h2hGame").style.display = "none";
+    document.getElementById("speedGame").style.display = "none";
+    document.getElementById("speedGameOver").style.display = "none";
+    document.getElementById("speedLeaderboard").style.display = "none";
+    document.getElementById("twoMinuteGame").style.display = "none";
+    document.getElementById("twoMinuteGameOver").style.display = "none";
+    document.getElementById("twoMinuteLeaderboard").style.display = "none";
 }
 
 // Setup modal handlers after DOM is ready

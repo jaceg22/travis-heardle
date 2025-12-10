@@ -353,6 +353,74 @@ app.get("/api/speed-leaderboard", async (req, res) => {
     }
 });
 
+// ---------------------------
+// 2 MINUTE LEADERBOARD ENDPOINTS
+// ---------------------------
+app.get("/api/two-minute-leaderboard", async (req, res) => {
+    try {
+        const artist = req.query.artist || 'travis';
+        
+        let query = supabase
+            .from('two_minute_leaderboard')
+            .select('username, songs_guessed, created_at')
+            .eq('artist', artist)
+            .order('songs_guessed', { ascending: false })
+            .limit(10);
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        res.json({ leaderboard: data || [] });
+    } catch (error) {
+        console.error("2 Minute leaderboard error:", error);
+        res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+});
+
+app.post("/api/two-minute-leaderboard", async (req, res) => {
+    try {
+        const { user_id, username, songs_guessed, artist } = req.body;
+        
+        console.log("2 Minute leaderboard save request:", {
+            user_id,
+            username,
+            songs_guessed,
+            artist
+        });
+        
+        if (!user_id || !username || songs_guessed === undefined) {
+            console.error("Invalid request - missing required fields");
+            return res.status(400).json({ error: "Invalid request" });
+        }
+        
+        const insertData = {
+            user_id,
+            username,
+            songs_guessed,
+            artist: artist || 'travis'
+        };
+        
+        console.log("Inserting into two_minute_leaderboard:", insertData);
+        
+        const { data, error } = await supabase
+            .from('two_minute_leaderboard')
+            .insert([insertData])
+            .select();
+        
+        if (error) {
+            console.error("Supabase error:", error);
+            throw error;
+        }
+        
+        console.log("Successfully saved to two_minute_leaderboard");
+        res.json({ success: true, data });
+    } catch (error) {
+        console.error("Error saving 2 minute leaderboard:", error);
+        res.status(500).json({ error: "Failed to save leaderboard entry", details: error.message });
+    }
+});
+
 app.post("/api/speed-leaderboard", async (req, res) => {
     try {
         const { user_id, username, total_time, rounds_completed, artist } = req.body;
