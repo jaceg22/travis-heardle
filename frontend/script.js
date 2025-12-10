@@ -1955,7 +1955,12 @@ let twoMinuteState = {
     gameOver: false,
     songQueue: [], // Shuffled list of songs
     currentSongIndex: 0,
-    audioEndedHandler: null
+    audioEndedHandler: null,
+    audioContext: null,
+    analyser: null,
+    dataArray: null,
+    animationFrameId: null,
+    mediaSource: null
 };
 
 // ---------------------------
@@ -4154,7 +4159,8 @@ function resetTwoMinuteGame() {
         audioContext: null,
         analyser: null,
         dataArray: null,
-        animationFrameId: null
+        animationFrameId: null,
+        mediaSource: null
     };
     
     // Reset UI
@@ -4253,6 +4259,7 @@ function playNextTwoMinuteSong() {
     // Load and play audio
     if (twoMinuteState.audio) {
         twoMinuteState.audio.pause();
+        twoMinuteState.audio.src = '';
         if (twoMinuteState.audioEndedHandler) {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
         }
@@ -4279,10 +4286,25 @@ function playNextTwoMinuteSong() {
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
     
+    // Ensure audio context is resumed before playing
+    if (twoMinuteState.audioContext && twoMinuteState.audioContext.state === 'suspended') {
+        twoMinuteState.audioContext.resume();
+    }
+    
     twoMinuteState.audio.play().then(() => {
         // Start soundwave animation when audio starts playing
         drawTwoMinuteSoundwave();
-    }).catch(e => console.error("Audio play error:", e));
+    }).catch(e => {
+        console.error("Audio play error:", e);
+        // If autoplay is blocked, try to resume audio context and play again
+        if (twoMinuteState.audioContext) {
+            twoMinuteState.audioContext.resume().then(() => {
+                twoMinuteState.audio.play().then(() => {
+                    drawTwoMinuteSoundwave();
+                }).catch(e2 => console.error("Audio play error after resume:", e2));
+            });
+        }
+    });
     
     // Clear feedback
     document.getElementById("twoMinuteFeedback").textContent = "";
@@ -4304,18 +4326,39 @@ function setupTwoMinuteSoundwave() {
             twoMinuteState.audioContext.resume();
         }
         
-        // Create analyser node
-        twoMinuteState.analyser = twoMinuteState.audioContext.createAnalyser();
-        twoMinuteState.analyser.fftSize = 256;
-        const bufferLength = twoMinuteState.analyser.frequencyBinCount;
-        twoMinuteState.dataArray = new Uint8Array(bufferLength);
+        // Disconnect old media source if it exists
+        if (twoMinuteState.mediaSource) {
+            try {
+                twoMinuteState.mediaSource.disconnect();
+            } catch (e) {
+                // Ignore disconnect errors
+            }
+        }
         
-        // Connect audio element to analyser
-        const source = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
-        source.connect(twoMinuteState.analyser);
-        twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
+        // Create analyser node if it doesn't exist
+        if (!twoMinuteState.analyser) {
+            twoMinuteState.analyser = twoMinuteState.audioContext.createAnalyser();
+            twoMinuteState.analyser.fftSize = 256;
+            const bufferLength = twoMinuteState.analyser.frequencyBinCount;
+            twoMinuteState.dataArray = new Uint8Array(bufferLength);
+        }
+        
+        // Connect audio element to analyser and destination
+        // createMediaElementSource can only be called once per audio element
+        // Since we create a new Audio() each time, we can create a new source
+        if (twoMinuteState.audio) {
+            try {
+                twoMinuteState.mediaSource = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
+                twoMinuteState.mediaSource.connect(twoMinuteState.analyser);
+                twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
+            } catch (e) {
+                console.error("Error connecting audio to analyser:", e);
+                // Continue without soundwave if there's an error
+            }
+        }
     } catch (error) {
         console.error("Error setting up soundwave:", error);
+        // Continue without soundwave if there's an error
     }
 }
 
