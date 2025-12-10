@@ -4260,16 +4260,23 @@ function playNextTwoMinuteSong() {
     if (twoMinuteState.audio) {
         twoMinuteState.audio.pause();
         twoMinuteState.audio.src = '';
+        twoMinuteState.audio._soundwaveConnected = false;
         if (twoMinuteState.audioEndedHandler) {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+        }
+        // Disconnect old media source
+        if (twoMinuteState.mediaSource) {
+            try {
+                twoMinuteState.mediaSource.disconnect();
+            } catch (e) {
+                // Ignore
+            }
+            twoMinuteState.mediaSource = null;
         }
     }
     
     const audioUrl = getAudioUrl(songName, songArtist);
     twoMinuteState.audio = new Audio(audioUrl);
-    
-    // Setup Web Audio API for soundwave visualization
-    setupTwoMinuteSoundwave();
     
     twoMinuteState.audioEndedHandler = () => {
         // Song ended, replay it
@@ -4286,24 +4293,24 @@ function playNextTwoMinuteSong() {
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
     
-    // Ensure audio context is resumed before playing
-    if (twoMinuteState.audioContext && twoMinuteState.audioContext.state === 'suspended') {
-        twoMinuteState.audioContext.resume();
+    // Setup soundwave BEFORE playing (createMediaElementSource must be called before play)
+    // But wrap in try-catch so audio can still play if soundwave fails
+    let soundwaveSetupSuccess = false;
+    try {
+        setupTwoMinuteSoundwave();
+        soundwaveSetupSuccess = true;
+    } catch (e) {
+        console.error("Soundwave setup failed, audio will play without visualization:", e);
     }
     
+    // Play audio - it will work with or without soundwave
     twoMinuteState.audio.play().then(() => {
-        // Start soundwave animation when audio starts playing
-        drawTwoMinuteSoundwave();
+        // Start soundwave animation if setup was successful
+        if (soundwaveSetupSuccess) {
+            drawTwoMinuteSoundwave();
+        }
     }).catch(e => {
         console.error("Audio play error:", e);
-        // If autoplay is blocked, try to resume audio context and play again
-        if (twoMinuteState.audioContext) {
-            twoMinuteState.audioContext.resume().then(() => {
-                twoMinuteState.audio.play().then(() => {
-                    drawTwoMinuteSoundwave();
-                }).catch(e2 => console.error("Audio play error after resume:", e2));
-            });
-        }
     });
     
     // Clear feedback
@@ -4315,6 +4322,11 @@ function playNextTwoMinuteSong() {
 }
 
 function setupTwoMinuteSoundwave() {
+    // Don't setup if audio doesn't exist or is already connected
+    if (!twoMinuteState.audio || twoMinuteState.audio._soundwaveConnected) {
+        return;
+    }
+    
     try {
         // Create or reuse audio context
         if (!twoMinuteState.audioContext || twoMinuteState.audioContext.state === 'closed') {
@@ -4323,7 +4335,9 @@ function setupTwoMinuteSoundwave() {
         
         // Resume audio context if suspended (required for user interaction)
         if (twoMinuteState.audioContext.state === 'suspended') {
-            twoMinuteState.audioContext.resume();
+            twoMinuteState.audioContext.resume().catch(e => {
+                console.error("Error resuming audio context:", e);
+            });
         }
         
         // Disconnect old media source if it exists
@@ -4333,6 +4347,7 @@ function setupTwoMinuteSoundwave() {
             } catch (e) {
                 // Ignore disconnect errors
             }
+            twoMinuteState.mediaSource = null;
         }
         
         // Create analyser node if it doesn't exist
@@ -4344,21 +4359,25 @@ function setupTwoMinuteSoundwave() {
         }
         
         // Connect audio element to analyser and destination
-        // createMediaElementSource can only be called once per audio element
-        // Since we create a new Audio() each time, we can create a new source
-        if (twoMinuteState.audio) {
-            try {
-                twoMinuteState.mediaSource = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
-                twoMinuteState.mediaSource.connect(twoMinuteState.analyser);
-                twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
-            } catch (e) {
-                console.error("Error connecting audio to analyser:", e);
-                // Continue without soundwave if there's an error
-            }
+        // IMPORTANT: createMediaElementSource disconnects the audio from its default output
+        // So we MUST connect it to the destination, otherwise audio won't play
+        try {
+            twoMinuteState.mediaSource = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
+            twoMinuteState.mediaSource.connect(twoMinuteState.analyser);
+            twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
+            twoMinuteState.audio._soundwaveConnected = true;
+        } catch (e) {
+            console.error("Error connecting audio to analyser:", e);
+            // If connection fails, we need to reconnect audio to its default output
+            // But we can't do that - so soundwave won't work, but audio should still work
+            // because createMediaElementSource hasn't been called yet
+            twoMinuteState.audio._soundwaveConnected = false;
+            throw e; // Re-throw to prevent further processing
         }
     } catch (error) {
         console.error("Error setting up soundwave:", error);
-        // Continue without soundwave if there's an error
+        // Audio should still play normally if soundwave setup fails
+        // because createMediaElementSource wasn't called
     }
 }
 
