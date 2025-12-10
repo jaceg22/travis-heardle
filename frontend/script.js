@@ -4276,42 +4276,58 @@ function playNextTwoMinuteSong() {
     }
     
     const audioUrl = getAudioUrl(songName, songArtist);
-    twoMinuteState.audio = new Audio(audioUrl);
     
-    twoMinuteState.audioEndedHandler = () => {
-        // Song ended, replay it
-        if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
-            twoMinuteState.audio.currentTime = 0;
-            twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+    // Helper to play audio, optionally with soundwave
+    const playAudio = (enableWave) => {
+        twoMinuteState.audio = new Audio(audioUrl);
+        twoMinuteState.audio.crossOrigin = "anonymous";
+
+        twoMinuteState.audioEndedHandler = () => {
+            // Song ended, replay it
+            if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+                twoMinuteState.audio.currentTime = 0;
+                twoMinuteState.audio.play().catch(err => console.error("Audio play error:", err));
+            }
+        };
+
+        twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
+
+        const handleError = (e) => {
+            console.error("Error loading audio, retrying without soundwave:", e);
+            document.getElementById("twoMinuteFeedback").textContent = "Error loading audio, retrying...";
+            document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+            // Retry once without soundwave
+            if (enableWave) {
+                playAudio(false);
+            }
+        };
+
+        twoMinuteState.audio.addEventListener('error', handleError, { once: true });
+
+        let soundwaveSetupSuccess = false;
+        if (enableWave) {
+            try {
+                setupTwoMinuteSoundwave();
+                soundwaveSetupSuccess = true;
+            } catch (e) {
+                console.error("Soundwave setup failed, audio will play without visualization:", e);
+            }
         }
+
+        twoMinuteState.audio.play().then(() => {
+            if (soundwaveSetupSuccess) {
+                drawTwoMinuteSoundwave();
+            }
+        }).catch(err => {
+            console.error("Audio play error:", err);
+            if (enableWave) {
+                playAudio(false);
+            }
+        });
     };
-    
-    twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
-    twoMinuteState.audio.addEventListener('error', (e) => {
-        console.error("Error loading audio:", e);
-        document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
-        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
-    });
-    
-    // Setup soundwave BEFORE playing (createMediaElementSource must be called before play)
-    // But wrap in try-catch so audio can still play if soundwave fails
-    let soundwaveSetupSuccess = false;
-    try {
-        setupTwoMinuteSoundwave();
-        soundwaveSetupSuccess = true;
-    } catch (e) {
-        console.error("Soundwave setup failed, audio will play without visualization:", e);
-    }
-    
-    // Play audio - it will work with or without soundwave
-    twoMinuteState.audio.play().then(() => {
-        // Start soundwave animation if setup was successful
-        if (soundwaveSetupSuccess) {
-            drawTwoMinuteSoundwave();
-        }
-    }).catch(e => {
-        console.error("Audio play error:", e);
-    });
+
+    // Start play with soundwave; will fall back to no soundwave on failure
+    playAudio(true);
     
     // Clear feedback
     document.getElementById("twoMinuteFeedback").textContent = "";
