@@ -1955,12 +1955,7 @@ let twoMinuteState = {
     gameOver: false,
     songQueue: [], // Shuffled list of songs
     currentSongIndex: 0,
-    audioEndedHandler: null,
-    audioContext: null,
-    analyser: null,
-    dataArray: null,
-    animationFrameId: null,
-    mediaSource: null
+    audioEndedHandler: null
 };
 
 // ---------------------------
@@ -4070,6 +4065,21 @@ function hideAutocomplete(mode) {
 // ---------------------------
 // SONG RESULT MODAL
 // ---------------------------
+function getArtistDefaultCoverKey(artist) {
+    if (artist === 'drake') return 'drake';
+    if (artist === 'bbbm') return 'bbbm';
+    if (artist === 'liltecca') return 'liltecca';
+    if (artist === 'lilbaby') return 'lilbaby';
+    if (artist === 'kendrick') return 'kendrick';
+    if (artist === 'kanye') return 'kanye';
+    return 'travis';
+}
+
+function getArtistCoverUrl(artist) {
+    const key = getArtistDefaultCoverKey(artist);
+    return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(key)}.jpg`;
+}
+
 function getAlbumCoverUrl(songName) {
     // Check if we have a custom cover mapped
     const albumMap = getAlbumMapForArtist(selectedArtist || 'travis');
@@ -4079,7 +4089,7 @@ function getAlbumCoverUrl(songName) {
         return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(albumName)}.jpg`;
     }
     // Default album cover based on artist
-    const defaultCover = 'travis';
+    const defaultCover = getArtistDefaultCoverKey(selectedArtist || 'travis');
     return `${SUPABASE_COVERS_BASE}/${defaultCover}.jpg`;
 }
 
@@ -4126,21 +4136,8 @@ function resetTwoMinuteGame() {
     if (twoMinuteState.timerInterval) {
         clearInterval(twoMinuteState.timerInterval);
     }
-    if (twoMinuteState.animationFrameId) {
-        cancelAnimationFrame(twoMinuteState.animationFrameId);
-    }
     if (twoMinuteState.audioEndedHandler && twoMinuteState.audio) {
         twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
-    }
-    if (twoMinuteState.audioContext) {
-        twoMinuteState.audioContext.close().catch(() => {});
-    }
-    
-    // Clear soundwave canvas
-    const canvas = document.getElementById("twoMinuteSoundwave");
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
     // Reset state
@@ -4155,12 +4152,7 @@ function resetTwoMinuteGame() {
         gameOver: false,
         songQueue: [],
         currentSongIndex: 0,
-        audioEndedHandler: null,
-        audioContext: null,
-        analyser: null,
-        dataArray: null,
-        animationFrameId: null,
-        mediaSource: null
+        audioEndedHandler: null
     };
     
     // Reset UI
@@ -4173,6 +4165,17 @@ function resetTwoMinuteGame() {
     document.getElementById("twoMinuteGuess").disabled = true;
     document.getElementById("twoMinuteSkip").disabled = true;
     document.getElementById("twoMinuteGuessInput").disabled = true;
+    
+    // Set artist image
+    const artistForImage = selectedArtist === 'chooserappers'
+        ? (selectedRappers[0] || 'travis')
+        : (selectedArtist || 'travis');
+    const imgEl = document.getElementById("twoMinuteArtistImg");
+    if (imgEl) {
+        imgEl.src = getArtistCoverUrl(artistForImage);
+        imgEl.alt = `${artistForImage} cover`;
+    }
+    
     hideAutocomplete("twoMinute");
 }
 
@@ -4206,6 +4209,7 @@ function startTwoMinuteGame() {
     document.getElementById("twoMinuteGuess").disabled = false;
     document.getElementById("twoMinuteSkip").disabled = false;
     document.getElementById("twoMinuteGuessInput").disabled = false;
+    document.getElementById("twoMinuteGuessInput").focus();
     
     // Start timer
     updateTwoMinuteTimer();
@@ -4222,15 +4226,15 @@ function updateTwoMinuteTimer() {
         return;
     }
     
-    // Decrement time
-    twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 10); // Subtract 10ms per interval
-    
     const minutes = Math.floor(twoMinuteState.timeRemaining / 60000);
     const seconds = Math.floor((twoMinuteState.timeRemaining % 60000) / 1000);
     const centiseconds = Math.floor((twoMinuteState.timeRemaining % 1000) / 10);
     
     document.getElementById("twoMinuteTimer").textContent = 
         `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+    
+    // Decrement time after updating display
+    twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 10); // Subtract 10ms per interval
 }
 
 function playNextTwoMinuteSong() {
@@ -4259,75 +4263,30 @@ function playNextTwoMinuteSong() {
     // Load and play audio
     if (twoMinuteState.audio) {
         twoMinuteState.audio.pause();
-        twoMinuteState.audio.src = '';
-        twoMinuteState.audio._soundwaveConnected = false;
         if (twoMinuteState.audioEndedHandler) {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
-        }
-        // Disconnect old media source
-        if (twoMinuteState.mediaSource) {
-            try {
-                twoMinuteState.mediaSource.disconnect();
-            } catch (e) {
-                // Ignore
-            }
-            twoMinuteState.mediaSource = null;
         }
     }
     
     const audioUrl = getAudioUrl(songName, songArtist);
+    twoMinuteState.audio = new Audio(audioUrl);
     
-    // Helper to play audio, optionally with soundwave
-    const playAudio = (enableWave) => {
-        twoMinuteState.audio = new Audio(audioUrl);
-        twoMinuteState.audio.crossOrigin = "anonymous";
-
-        twoMinuteState.audioEndedHandler = () => {
-            // Song ended, replay it
-            if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
-                twoMinuteState.audio.currentTime = 0;
-                twoMinuteState.audio.play().catch(err => console.error("Audio play error:", err));
-            }
-        };
-
-        twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
-
-        const handleError = (e) => {
-            console.error("Error loading audio, retrying without soundwave:", e);
-            document.getElementById("twoMinuteFeedback").textContent = "Error loading audio, retrying...";
-            document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
-            // Retry once without soundwave
-            if (enableWave) {
-                playAudio(false);
-            }
-        };
-
-        twoMinuteState.audio.addEventListener('error', handleError, { once: true });
-
-        let soundwaveSetupSuccess = false;
-        if (enableWave) {
-            try {
-                setupTwoMinuteSoundwave();
-                soundwaveSetupSuccess = true;
-            } catch (e) {
-                console.error("Soundwave setup failed, audio will play without visualization:", e);
-            }
+    twoMinuteState.audioEndedHandler = () => {
+        // Song ended, replay it
+        if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+            twoMinuteState.audio.currentTime = 0;
+            twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
         }
-
-        twoMinuteState.audio.play().then(() => {
-            if (soundwaveSetupSuccess) {
-                drawTwoMinuteSoundwave();
-            }
-        }).catch(err => {
-            console.error("Audio play error:", err);
-            if (enableWave) {
-                playAudio(false);
-            }
-        });
     };
-
-    // Start play with soundwave; will fall back to no soundwave on failure
-    playAudio(true);
+    
+    twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
+    twoMinuteState.audio.addEventListener('error', (e) => {
+        console.error("Error loading audio:", e);
+        document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
+        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+    });
+    
+    twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
     
     // Clear feedback
     document.getElementById("twoMinuteFeedback").textContent = "";
@@ -4335,108 +4294,6 @@ function playNextTwoMinuteSong() {
     document.getElementById("twoMinuteGuessInput").value = "";
     document.getElementById("twoMinuteGuessInput").focus();
     hideAutocomplete("twoMinute");
-}
-
-function setupTwoMinuteSoundwave() {
-    // Don't setup if audio doesn't exist or is already connected
-    if (!twoMinuteState.audio || twoMinuteState.audio._soundwaveConnected) {
-        return;
-    }
-    
-    try {
-        // Create or reuse audio context
-        if (!twoMinuteState.audioContext || twoMinuteState.audioContext.state === 'closed') {
-            twoMinuteState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        
-        // Resume audio context if suspended (required for user interaction)
-        if (twoMinuteState.audioContext.state === 'suspended') {
-            twoMinuteState.audioContext.resume().catch(e => {
-                console.error("Error resuming audio context:", e);
-            });
-        }
-        
-        // Disconnect old media source if it exists
-        if (twoMinuteState.mediaSource) {
-            try {
-                twoMinuteState.mediaSource.disconnect();
-            } catch (e) {
-                // Ignore disconnect errors
-            }
-            twoMinuteState.mediaSource = null;
-        }
-        
-        // Create analyser node if it doesn't exist
-        if (!twoMinuteState.analyser) {
-            twoMinuteState.analyser = twoMinuteState.audioContext.createAnalyser();
-            twoMinuteState.analyser.fftSize = 256;
-            const bufferLength = twoMinuteState.analyser.frequencyBinCount;
-            twoMinuteState.dataArray = new Uint8Array(bufferLength);
-        }
-        
-        // Connect audio element to analyser and destination
-        // IMPORTANT: createMediaElementSource disconnects the audio from its default output
-        // So we MUST connect it to the destination, otherwise audio won't play
-        try {
-            twoMinuteState.mediaSource = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
-            twoMinuteState.mediaSource.connect(twoMinuteState.analyser);
-            twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
-            twoMinuteState.audio._soundwaveConnected = true;
-        } catch (e) {
-            console.error("Error connecting audio to analyser:", e);
-            // If connection fails after createMediaElementSource, audio is already disconnected
-            // We can't recover from this, so mark as failed and don't use soundwave
-            twoMinuteState.audio._soundwaveConnected = false;
-            // Don't throw - let audio play without soundwave
-            // The audio element will need to be recreated to work properly
-        }
-    } catch (error) {
-        console.error("Error setting up soundwave:", error);
-        // Audio should still play normally if soundwave setup fails
-        // because createMediaElementSource wasn't called
-    }
-}
-
-function drawTwoMinuteSoundwave() {
-    if (!twoMinuteState.analyser || !twoMinuteState.dataArray || twoMinuteState.gameOver) {
-        return;
-    }
-    
-    const canvas = document.getElementById("twoMinuteSoundwave");
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    // Clear canvas
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Get frequency data
-    twoMinuteState.analyser.getByteFrequencyData(twoMinuteState.dataArray);
-    
-    // Draw bars
-    const barCount = twoMinuteState.dataArray.length;
-    const barWidth = width / barCount;
-    
-    for (let i = 0; i < barCount; i++) {
-        const barHeight = (twoMinuteState.dataArray[i] / 255) * height;
-        
-        // Create gradient
-        const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
-        gradient.addColorStop(0, '#00ff00');
-        gradient.addColorStop(0.5, '#ffff00');
-        gradient.addColorStop(1, '#ff0000');
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
-    }
-    
-    // Continue animation
-    if (!twoMinuteState.gameOver && twoMinuteState.gameStarted) {
-        twoMinuteState.animationFrameId = requestAnimationFrame(drawTwoMinuteSoundwave);
-    }
 }
 
 function skipTwoMinuteSong() {
@@ -4527,12 +4384,6 @@ function endTwoMinuteGame() {
         twoMinuteState.timerInterval = null;
     }
     
-    // Stop animation
-    if (twoMinuteState.animationFrameId) {
-        cancelAnimationFrame(twoMinuteState.animationFrameId);
-        twoMinuteState.animationFrameId = null;
-    }
-    
     // Stop audio
     if (twoMinuteState.audio) {
         twoMinuteState.audio.pause();
@@ -4540,13 +4391,6 @@ function endTwoMinuteGame() {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
         }
         twoMinuteState.audio = null;
-    }
-    
-    // Clear soundwave
-    const canvas = document.getElementById("twoMinuteSoundwave");
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
     // Disable controls
