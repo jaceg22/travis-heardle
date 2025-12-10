@@ -4368,11 +4368,11 @@ function setupTwoMinuteSoundwave() {
             twoMinuteState.audio._soundwaveConnected = true;
         } catch (e) {
             console.error("Error connecting audio to analyser:", e);
-            // If connection fails, we need to reconnect audio to its default output
-            // But we can't do that - so soundwave won't work, but audio should still work
-            // because createMediaElementSource hasn't been called yet
+            // If connection fails after createMediaElementSource, audio is already disconnected
+            // We can't recover from this, so mark as failed and don't use soundwave
             twoMinuteState.audio._soundwaveConnected = false;
-            throw e; // Re-throw to prevent further processing
+            // Don't throw - let audio play without soundwave
+            // The audio element will need to be recreated to work properly
         }
     } catch (error) {
         console.error("Error setting up soundwave:", error);
