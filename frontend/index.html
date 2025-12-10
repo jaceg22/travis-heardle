@@ -329,16 +329,20 @@
 <div id="twoMinuteGame" style="display:none;">
     <div class="game-header">
         <button id="twoMinuteHome" class="home-btn-top">Home</button>
-        <div class="two-minute-info">
+        <div class="speed-info">
             <span id="twoMinuteTimer" class="timer-display">2:00.00</span>
-            <span id="twoMinuteSongsGuessed" class="songs-guessed-display">Songs Guessed: 0</span>
+            <span id="twoMinuteSongsGuessed" class="round-display">Songs Guessed: 0</span>
         </div>
     </div>
 
-    <div class="two-minute-controls-container">
+    <div class="soundwave-container">
+        <canvas id="twoMinuteSoundwave" width="800" height="200"></canvas>
+    </div>
+
+    <div class="controls-container">
         <button id="twoMinuteStart" class="control-btn">Start</button>
-        <button id="twoMinuteGuess" class="control-btn" disabled>Guess</button>
         <button id="twoMinuteSkip" class="control-btn" disabled>Skip (-5s)</button>
+        <button id="twoMinuteGuess" class="control-btn" disabled>Guess</button>
     </div>
 
     <div class="guess-section">

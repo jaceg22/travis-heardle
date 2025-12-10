@@ -4121,8 +4121,21 @@ function resetTwoMinuteGame() {
     if (twoMinuteState.timerInterval) {
         clearInterval(twoMinuteState.timerInterval);
     }
+    if (twoMinuteState.animationFrameId) {
+        cancelAnimationFrame(twoMinuteState.animationFrameId);
+    }
     if (twoMinuteState.audioEndedHandler && twoMinuteState.audio) {
         twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
+    }
+    if (twoMinuteState.audioContext) {
+        twoMinuteState.audioContext.close().catch(() => {});
+    }
+    
+    // Clear soundwave canvas
+    const canvas = document.getElementById("twoMinuteSoundwave");
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
     // Reset state
@@ -4137,7 +4150,11 @@ function resetTwoMinuteGame() {
         gameOver: false,
         songQueue: [],
         currentSongIndex: 0,
-        audioEndedHandler: null
+        audioEndedHandler: null,
+        audioContext: null,
+        analyser: null,
+        dataArray: null,
+        animationFrameId: null
     };
     
     // Reset UI
@@ -4199,6 +4216,9 @@ function updateTwoMinuteTimer() {
         return;
     }
     
+    // Decrement time
+    twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 10); // Subtract 10ms per interval
+    
     const minutes = Math.floor(twoMinuteState.timeRemaining / 60000);
     const seconds = Math.floor((twoMinuteState.timeRemaining % 60000) / 1000);
     const centiseconds = Math.floor((twoMinuteState.timeRemaining % 1000) / 10);
@@ -4241,6 +4261,9 @@ function playNextTwoMinuteSong() {
     const audioUrl = getAudioUrl(songName, songArtist);
     twoMinuteState.audio = new Audio(audioUrl);
     
+    // Setup Web Audio API for soundwave visualization
+    setupTwoMinuteSoundwave();
+    
     twoMinuteState.audioEndedHandler = () => {
         // Song ended, replay it
         if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
@@ -4256,13 +4279,86 @@ function playNextTwoMinuteSong() {
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
     
-    twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+    twoMinuteState.audio.play().then(() => {
+        // Start soundwave animation when audio starts playing
+        drawTwoMinuteSoundwave();
+    }).catch(e => console.error("Audio play error:", e));
     
     // Clear feedback
     document.getElementById("twoMinuteFeedback").textContent = "";
     document.getElementById("twoMinuteFeedback").className = "feedback";
     document.getElementById("twoMinuteGuessInput").value = "";
+    document.getElementById("twoMinuteGuessInput").focus();
     hideAutocomplete("twoMinute");
+}
+
+function setupTwoMinuteSoundwave() {
+    try {
+        // Create or reuse audio context
+        if (!twoMinuteState.audioContext || twoMinuteState.audioContext.state === 'closed') {
+            twoMinuteState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // Resume audio context if suspended (required for user interaction)
+        if (twoMinuteState.audioContext.state === 'suspended') {
+            twoMinuteState.audioContext.resume();
+        }
+        
+        // Create analyser node
+        twoMinuteState.analyser = twoMinuteState.audioContext.createAnalyser();
+        twoMinuteState.analyser.fftSize = 256;
+        const bufferLength = twoMinuteState.analyser.frequencyBinCount;
+        twoMinuteState.dataArray = new Uint8Array(bufferLength);
+        
+        // Connect audio element to analyser
+        const source = twoMinuteState.audioContext.createMediaElementSource(twoMinuteState.audio);
+        source.connect(twoMinuteState.analyser);
+        twoMinuteState.analyser.connect(twoMinuteState.audioContext.destination);
+    } catch (error) {
+        console.error("Error setting up soundwave:", error);
+    }
+}
+
+function drawTwoMinuteSoundwave() {
+    if (!twoMinuteState.analyser || !twoMinuteState.dataArray || twoMinuteState.gameOver) {
+        return;
+    }
+    
+    const canvas = document.getElementById("twoMinuteSoundwave");
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Get frequency data
+    twoMinuteState.analyser.getByteFrequencyData(twoMinuteState.dataArray);
+    
+    // Draw bars
+    const barCount = twoMinuteState.dataArray.length;
+    const barWidth = width / barCount;
+    
+    for (let i = 0; i < barCount; i++) {
+        const barHeight = (twoMinuteState.dataArray[i] / 255) * height;
+        
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
+        gradient.addColorStop(0, '#00ff00');
+        gradient.addColorStop(0.5, '#ffff00');
+        gradient.addColorStop(1, '#ff0000');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
+    }
+    
+    // Continue animation
+    if (!twoMinuteState.gameOver && twoMinuteState.gameStarted) {
+        twoMinuteState.animationFrameId = requestAnimationFrame(drawTwoMinuteSoundwave);
+    }
 }
 
 function skipTwoMinuteSong() {
@@ -4293,9 +4389,12 @@ function handleTwoMinuteGuess() {
     }
     
     if (!matchedSong) {
-        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again.`;
+        // Deduct 5 seconds for incorrect guess
+        twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 5000);
+        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again. (-5s)`;
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
         document.getElementById("twoMinuteGuessInput").value = "";
+        document.getElementById("twoMinuteGuessInput").focus();
         hideAutocomplete("twoMinute");
         return;
     }
@@ -4322,14 +4421,18 @@ function handleTwoMinuteGuess() {
         setTimeout(() => {
             if (!twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
                 playNextTwoMinuteSong();
+                document.getElementById("twoMinuteGuessInput").focus();
             }
         }, 500); // Small delay for feedback
         
         hideAutocomplete("twoMinute");
     } else {
-        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again.`;
+        // Deduct 5 seconds for incorrect guess
+        twoMinuteState.timeRemaining = Math.max(0, twoMinuteState.timeRemaining - 5000);
+        document.getElementById("twoMinuteFeedback").textContent = `"${guess}": Incorrect. Try Again. (-5s)`;
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
         document.getElementById("twoMinuteGuessInput").value = "";
+        document.getElementById("twoMinuteGuessInput").focus();
         hideAutocomplete("twoMinute");
     }
 }
@@ -4346,6 +4449,12 @@ function endTwoMinuteGame() {
         twoMinuteState.timerInterval = null;
     }
     
+    // Stop animation
+    if (twoMinuteState.animationFrameId) {
+        cancelAnimationFrame(twoMinuteState.animationFrameId);
+        twoMinuteState.animationFrameId = null;
+    }
+    
     // Stop audio
     if (twoMinuteState.audio) {
         twoMinuteState.audio.pause();
@@ -4353,6 +4462,13 @@ function endTwoMinuteGame() {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
         }
         twoMinuteState.audio = null;
+    }
+    
+    // Clear soundwave
+    const canvas = document.getElementById("twoMinuteSoundwave");
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
     // Disable controls
@@ -4375,7 +4491,13 @@ function endTwoMinuteGame() {
 // Button handlers
 document.getElementById("twoMinuteStart").onclick = startTwoMinuteGame;
 document.getElementById("twoMinuteSkip").onclick = skipTwoMinuteSong;
-document.getElementById("twoMinuteGuess").onclick = handleTwoMinuteGuess;
+document.getElementById("twoMinuteGuess").onclick = () => {
+    handleTwoMinuteGuess();
+    // Auto-focus guess input after clicking guess
+    setTimeout(() => {
+        document.getElementById("twoMinuteGuessInput").focus();
+    }, 100);
+};
 
 document.getElementById("twoMinuteGuessInput").addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
@@ -4383,25 +4505,8 @@ document.getElementById("twoMinuteGuessInput").addEventListener("keypress", (e) 
     }
 });
 
-// Autocomplete for 2 minute mode
-document.getElementById("twoMinuteGuessInput").addEventListener("input", (e) => {
-    const query = e.target.value.trim().toLowerCase();
-    if (!query) {
-        hideAutocomplete("twoMinute");
-        return;
-    }
-    
-    const songs = getSongsForArtist(selectedArtist || 'travis');
-    const matches = songs.filter(song => 
-        song.toLowerCase().includes(query)
-    ).slice(0, 5);
-    
-    showAutocomplete("twoMinute", matches, (selectedSong) => {
-        document.getElementById("twoMinuteGuessInput").value = selectedSong;
-        hideAutocomplete("twoMinute");
-        handleTwoMinuteGuess();
-    });
-});
+// Setup autocomplete for 2 minute mode (same as other modes)
+setupAutocomplete("twoMinuteGuessInput", "twoMinuteAutocomplete");
 
 document.getElementById("twoMinuteHome").onclick = () => {
     resetTwoMinuteGame();
