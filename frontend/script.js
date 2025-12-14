@@ -4317,7 +4317,6 @@ function playNextTwoMinuteSong() {
     console.log("[2MIN] Creating new Audio element");
     
     twoMinuteState.audio = new Audio(audioUrl);
-    twoMinuteState.audio.crossOrigin = "anonymous";
     
     console.log("[2MIN] Audio element created:", twoMinuteState.audio);
     console.log("[2MIN] Audio src:", twoMinuteState.audio.src);
