@@ -1848,36 +1848,47 @@ function getAlbumMapForArtist(artist) {
 // Helper function to construct audio file URL for a song using Cloudflare R2
 // songArtist is optional - if provided, use it; otherwise determine from song name
 function getAudioUrl(songName, songArtist = null) {
+    console.log("[AUDIO] getAudioUrl called - songName:", songName, "songArtist:", songArtist);
+    
     // Determine which artist to use for this song
     let artistToUse = songArtist;
     
     // In "choose rappers" mode, determine which artist the song belongs to
     if (selectedArtist === 'chooserappers') {
+        console.log("[AUDIO] Choose rappers mode");
         if (!artistToUse) {
             // If not provided, determine it (should be provided from state, but fallback)
             // Only check selected rappers
             const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+            console.log("[AUDIO] Found artists for song:", artists);
             if (artists.length > 0) {
                 artistToUse = artists[Math.floor(Math.random() * artists.length)];
             } else {
                 // Fallback to first selected rapper if song not found
                 artistToUse = selectedRappers[0] || 'travis';
+                console.log("[AUDIO] No artists found, using fallback:", artistToUse);
             }
         }
     } else {
         // Use the selected artist
         artistToUse = selectedArtist;
+        console.log("[AUDIO] Using selectedArtist:", artistToUse);
     }
     
     // Get the public URL for this artist's bucket
     const bucketPublicUrl = R2_PUBLIC_URLS[artistToUse] || R2_PUBLIC_URLS.travis;
+    console.log("[AUDIO] bucketPublicUrl:", bucketPublicUrl);
+    console.log("[AUDIO] R2_PUBLIC_URLS keys:", Object.keys(R2_PUBLIC_URLS));
+    console.log("[AUDIO] R2_PUBLIC_URLS[artistToUse]:", R2_PUBLIC_URLS[artistToUse]);
     
     // Construct R2 URL: {bucket-public-url}/song.mp3
     // All songs are in root of bucket (no folders)
-    const url = `${bucketPublicUrl}/${encodeURIComponent(songName)}.mp3`;
+    const encodedSongName = encodeURIComponent(songName);
+    console.log("[AUDIO] Encoded song name:", encodedSongName);
+    const url = `${bucketPublicUrl}/${encodedSongName}.mp3`;
     
     // Debug logging
-    console.log('Audio URL:', url, 'Artist:', artistToUse, 'Song:', songName);
+    console.log('[AUDIO] Final Audio URL:', url, 'Artist:', artistToUse, 'Song:', songName);
     
     return url;
 }
@@ -4189,20 +4200,37 @@ function shuffleArray(array) {
 }
 
 function initializeTwoMinuteSongQueue() {
+    console.log("[2MIN] initializeTwoMinuteSongQueue called");
+    console.log("[2MIN] selectedArtist:", selectedArtist);
     const songs = getSongsForArtist(selectedArtist || 'travis');
+    console.log("[2MIN] getSongsForArtist returned", songs.length, "songs");
+    console.log("[2MIN] First 5 songs:", songs.slice(0, 5));
     twoMinuteState.songQueue = shuffleArray(songs);
     twoMinuteState.currentSongIndex = 0;
+    console.log("[2MIN] Song queue shuffled, length:", twoMinuteState.songQueue.length);
+    console.log("[2MIN] First 5 shuffled songs:", twoMinuteState.songQueue.slice(0, 5));
 }
 
 function startTwoMinuteGame() {
-    if (twoMinuteState.gameStarted) return;
+    console.log("[2MIN] startTwoMinuteGame called");
+    console.log("[2MIN] gameStarted:", twoMinuteState.gameStarted);
+    
+    if (twoMinuteState.gameStarted) {
+        console.log("[2MIN] Game already started, returning");
+        return;
+    }
     
     twoMinuteState.gameStarted = true;
     twoMinuteState.timeRemaining = 120000; // 2 minutes
     twoMinuteState.songsGuessed = 0;
     
+    console.log("[2MIN] selectedArtist:", selectedArtist);
+    
     // Initialize song queue
+    console.log("[2MIN] Initializing song queue");
     initializeTwoMinuteSongQueue();
+    console.log("[2MIN] Song queue initialized, length:", twoMinuteState.songQueue.length);
+    console.log("[2MIN] First few songs:", twoMinuteState.songQueue.slice(0, 5));
     
     // Enable/disable buttons
     document.getElementById("twoMinuteStart").disabled = true;
@@ -4212,10 +4240,12 @@ function startTwoMinuteGame() {
     document.getElementById("twoMinuteGuessInput").focus();
     
     // Start timer
+    console.log("[2MIN] Starting timer");
     updateTwoMinuteTimer();
     twoMinuteState.timerInterval = setInterval(updateTwoMinuteTimer, 10); // Update every 10ms for precision
     
     // Start first song
+    console.log("[2MIN] Calling playNextTwoMinuteSong");
     playNextTwoMinuteSong();
 }
 
@@ -4238,14 +4268,25 @@ function updateTwoMinuteTimer() {
 }
 
 function playNextTwoMinuteSong() {
-    if (twoMinuteState.gameOver || twoMinuteState.timeRemaining <= 0) return;
+    console.log("[2MIN] playNextTwoMinuteSong called");
+    console.log("[2MIN] gameOver:", twoMinuteState.gameOver, "timeRemaining:", twoMinuteState.timeRemaining);
+    
+    if (twoMinuteState.gameOver || twoMinuteState.timeRemaining <= 0) {
+        console.log("[2MIN] Early return - gameOver or timeRemaining <= 0");
+        return;
+    }
     
     // If we've used all songs, reshuffle
     if (twoMinuteState.currentSongIndex >= twoMinuteState.songQueue.length) {
+        console.log("[2MIN] Reshuffling song queue");
         initializeTwoMinuteSongQueue();
     }
     
     const songName = twoMinuteState.songQueue[twoMinuteState.currentSongIndex];
+    console.log("[2MIN] Selected song:", songName, "index:", twoMinuteState.currentSongIndex);
+    console.log("[2MIN] Song queue length:", twoMinuteState.songQueue.length);
+    console.log("[2MIN] selectedArtist:", selectedArtist);
+    
     twoMinuteState.currentSong = songName;
     twoMinuteState.guessed = false;
     
@@ -4253,15 +4294,18 @@ function playNextTwoMinuteSong() {
     let songArtist = null;
     if (selectedArtist === 'chooserappers') {
         const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        console.log("[2MIN] Choose rappers mode - found artists:", artists);
         if (artists.length > 0) {
             songArtist = artists[Math.floor(Math.random() * artists.length)];
         }
     } else {
         songArtist = selectedArtist;
     }
+    console.log("[2MIN] Determined songArtist:", songArtist);
     
     // Load and play audio
     if (twoMinuteState.audio) {
+        console.log("[2MIN] Pausing previous audio");
         twoMinuteState.audio.pause();
         if (twoMinuteState.audioEndedHandler) {
             twoMinuteState.audio.removeEventListener('ended', twoMinuteState.audioEndedHandler);
@@ -4269,26 +4313,82 @@ function playNextTwoMinuteSong() {
     }
     
     const audioUrl = getAudioUrl(songName, songArtist);
+    console.log("[2MIN] Generated audioUrl:", audioUrl);
+    console.log("[2MIN] Creating new Audio element");
+    
     twoMinuteState.audio = new Audio(audioUrl);
     twoMinuteState.audio.crossOrigin = "anonymous";
     
+    console.log("[2MIN] Audio element created:", twoMinuteState.audio);
+    console.log("[2MIN] Audio src:", twoMinuteState.audio.src);
+    console.log("[2MIN] Audio readyState:", twoMinuteState.audio.readyState);
+    
+    // Add load event listener
+    twoMinuteState.audio.addEventListener('loadstart', () => {
+        console.log("[2MIN] Audio loadstart event fired");
+    });
+    
+    twoMinuteState.audio.addEventListener('loadedmetadata', () => {
+        console.log("[2MIN] Audio loadedmetadata event fired");
+        console.log("[2MIN] Audio duration:", twoMinuteState.audio.duration);
+    });
+    
+    twoMinuteState.audio.addEventListener('loadeddata', () => {
+        console.log("[2MIN] Audio loadeddata event fired");
+    });
+    
+    twoMinuteState.audio.addEventListener('canplay', () => {
+        console.log("[2MIN] Audio canplay event fired");
+    });
+    
+    twoMinuteState.audio.addEventListener('canplaythrough', () => {
+        console.log("[2MIN] Audio canplaythrough event fired");
+    });
+    
     twoMinuteState.audioEndedHandler = () => {
+        console.log("[2MIN] Audio ended event fired");
         // Song ended, replay it
         if (!twoMinuteState.guessed && !twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+            console.log("[2MIN] Replaying audio");
             twoMinuteState.audio.currentTime = 0;
-            twoMinuteState.audio.play().catch(e => console.error("Audio play error:", e));
+            twoMinuteState.audio.play().catch(e => {
+                console.error("[2MIN] Audio replay error:", e);
+            });
         }
     };
     
     twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
+    
     twoMinuteState.audio.addEventListener('error', (e) => {
-        console.error("Error loading audio:", e, "url:", audioUrl, "artist:", songArtist, "song:", songName);
+        console.error("[2MIN] ERROR loading audio!");
+        console.error("[2MIN] Error event:", e);
+        console.error("[2MIN] Error type:", e.type);
+        console.error("[2MIN] Audio error code:", twoMinuteState.audio.error);
+        console.error("[2MIN] Audio error message:", twoMinuteState.audio.error ? twoMinuteState.audio.error.message : "N/A");
+        console.error("[2MIN] URL:", audioUrl);
+        console.error("[2MIN] Artist:", songArtist);
+        console.error("[2MIN] Song:", songName);
+        console.error("[2MIN] Audio readyState:", twoMinuteState.audio.readyState);
+        console.error("[2MIN] Audio src:", twoMinuteState.audio.src);
         document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
     
-    twoMinuteState.audio.play().catch(e => {
-        console.error("Audio play error:", e, "url:", audioUrl, "artist:", songArtist, "song:", songName);
+    console.log("[2MIN] Calling audio.play()");
+    twoMinuteState.audio.play().then(() => {
+        console.log("[2MIN] Audio play() succeeded");
+        console.log("[2MIN] Audio paused:", twoMinuteState.audio.paused);
+        console.log("[2MIN] Audio currentTime:", twoMinuteState.audio.currentTime);
+    }).catch(e => {
+        console.error("[2MIN] ERROR playing audio!");
+        console.error("[2MIN] Play error:", e);
+        console.error("[2MIN] Error name:", e.name);
+        console.error("[2MIN] Error message:", e.message);
+        console.error("[2MIN] URL:", audioUrl);
+        console.error("[2MIN] Artist:", songArtist);
+        console.error("[2MIN] Song:", songName);
+        console.error("[2MIN] Audio readyState:", twoMinuteState.audio.readyState);
+        console.error("[2MIN] Audio src:", twoMinuteState.audio.src);
         document.getElementById("twoMinuteFeedback").textContent = "Error playing audio";
         document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
     });
