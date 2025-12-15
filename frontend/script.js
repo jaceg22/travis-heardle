@@ -1845,6 +1845,19 @@ function getAlbumMapForArtist(artist) {
     return ALBUM_COVERS;
 }
 
+// Helper function to log audio errors to backend
+async function logAudioError(songName, artist) {
+    try {
+        await fetch(`${BACKEND_URL}/api/log-audio-error`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ song_name: songName, artist: artist || selectedArtist || 'travis' })
+        });
+    } catch (error) {
+        console.error("Failed to log audio error:", error);
+    }
+}
+
 // Helper function to construct audio file URL for a song using Cloudflare R2
 // songArtist is optional - if provided, use it; otherwise determine from song name
 function getAudioUrl(songName, songArtist = null) {
@@ -2100,6 +2113,31 @@ document.getElementById("soloHome").onclick = () => {
 // ---------------------------
 // SOLO MODE
 // ---------------------------
+// Helper function to select a new random song for solo mode
+function selectNewSoloSong() {
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let newSong;
+    // Try to avoid selecting the same song
+    do {
+        newSong = songs[Math.floor(Math.random() * songs.length)];
+    } while (newSong === soloState.currentSong && songs.length > 1);
+    
+    const songName = newSong;
+    
+    // In "choose rappers" mode, determine which artist this song belongs to
+    let songArtist = null;
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            songArtist = selectedRappers[0] || 'travis';
+        }
+    }
+    
+    return { songName, songArtist };
+}
+
 async function startSoloGame() {
     // Ensure selectedArtist is set from localStorage if not already set
     ensureArtistSelected();
@@ -2267,9 +2305,38 @@ document.getElementById("soloPlay").onclick = () => {
         soloState.audio = new Audio(url);
         soloState.audio.currentTime = 0;
         
-        soloState.audio.play().catch(err => {
+        soloState.audio.addEventListener('error', async (e) => {
+            console.error("Error loading audio:", e);
+            await logAudioError(soloState.currentSong, soloState.songArtist || selectedArtist);
+            // Select new song and restart
+            const { songName, songArtist } = selectNewSoloSong();
+            soloState.currentSong = songName;
+            soloState.songArtist = songArtist;
+            soloState.skips = 0;
+            soloState.strikes = 0;
+            soloState.guessed = false;
+            soloState.startTime = 0;
+            document.getElementById("soloFeedback").textContent = "Error loading audio. Selecting new song...";
+            setTimeout(() => {
+                startSoloGame();
+            }, 1000);
+        });
+        
+        soloState.audio.play().catch(async (err) => {
             console.error("Error playing audio:", err);
-            document.getElementById("soloFeedback").textContent = "Error loading audio. Try again.";
+            await logAudioError(soloState.currentSong, soloState.songArtist || selectedArtist);
+            // Select new song and restart
+            const { songName, songArtist } = selectNewSoloSong();
+            soloState.currentSong = songName;
+            soloState.songArtist = songArtist;
+            soloState.skips = 0;
+            soloState.strikes = 0;
+            soloState.guessed = false;
+            soloState.startTime = 0;
+            document.getElementById("soloFeedback").textContent = "Error loading audio. Selecting new song...";
+            setTimeout(() => {
+                startSoloGame();
+            }, 1000);
         });
         
         document.getElementById("soloPlay").textContent = "Pause";
@@ -2314,6 +2381,23 @@ document.getElementById("soloPlay").onclick = () => {
     soloState.audio = new Audio(url);
     soloState.audio.currentTime = soloState.startTime;
     
+    soloState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(soloState.currentSong, soloState.songArtist || selectedArtist);
+        // Select new song and restart
+        const { songName, songArtist } = selectNewSoloSong();
+        soloState.currentSong = songName;
+        soloState.songArtist = songArtist;
+        soloState.skips = 0;
+        soloState.strikes = 0;
+        soloState.guessed = false;
+        soloState.startTime = 0;
+        document.getElementById("soloFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSoloGame();
+        }, 1000);
+    });
+    
     // Start progress bar animation
     if (soloState.progressInterval) {
         clearInterval(soloState.progressInterval);
@@ -2322,9 +2406,21 @@ document.getElementById("soloPlay").onclick = () => {
     const startProgress = soloState.startTime;
     const endProgress = startProgress + duration;
     
-    soloState.audio.play().catch(err => {
+    soloState.audio.play().catch(async (err) => {
         console.error("Error playing audio:", err);
-        document.getElementById("soloFeedback").textContent = "Error loading audio. Try again.";
+        await logAudioError(soloState.currentSong, soloState.songArtist || selectedArtist);
+        // Select new song and restart
+        const { songName, songArtist } = selectNewSoloSong();
+        soloState.currentSong = songName;
+        soloState.songArtist = songArtist;
+        soloState.skips = 0;
+        soloState.strikes = 0;
+        soloState.guessed = false;
+        soloState.startTime = 0;
+        document.getElementById("soloFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSoloGame();
+        }, 1000);
     });
     
     // Update progress bar
@@ -2562,6 +2658,41 @@ async function startSpeedGame() {
     await startSpeedRound();
 }
 
+// Helper function to select a new song for speed mode
+function selectNewSpeedSong() {
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let songName;
+    
+    if (speedState.songQueue && speedState.songQueue.length > 0) {
+        // Use pre-selected queue, but pick a different song
+        let availableSongs = speedState.songQueue.filter(s => s !== speedState.currentSong);
+        if (availableSongs.length === 0) {
+            availableSongs = speedState.songQueue;
+        }
+        songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
+    } else {
+        // Old behavior: random selection
+        let availableSongs = songs.filter(s => s !== speedState.currentSong);
+        if (availableSongs.length === 0) {
+            availableSongs = songs;
+        }
+        songName = availableSongs[Math.floor(Math.random() * availableSongs.length)];
+    }
+    
+    // In "choose rappers" mode, determine which artist this song belongs to
+    let songArtist = null;
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            songArtist = selectedRappers[0] || 'travis';
+        }
+    }
+    
+    return { songName, songArtist };
+}
+
 async function startSpeedRound() {
     // Ensure selectedArtist is set from localStorage if not already set
     ensureArtistSelected();
@@ -2763,9 +2894,38 @@ document.getElementById("speedPlay").onclick = () => {
     speedState.audio = new Audio(url);
     speedState.audio.currentTime = speedState.startTime;
     
-    speedState.audio.play().catch(err => {
+    speedState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(speedState.currentSong, speedState.songArtist || selectedArtist);
+        // Select new song and restart round
+        const { songName, songArtist } = selectNewSpeedSong();
+        speedState.currentSong = songName;
+        speedState.songArtist = songArtist;
+        speedState.skips = 0;
+        speedState.strikes = 0;
+        speedState.guessed = false;
+        speedState.startTime = 0;
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSpeedRound();
+        }, 1000);
+    });
+    
+    speedState.audio.play().catch(async (err) => {
         console.error("Error playing audio:", err);
-        document.getElementById("speedFeedback").textContent = "Error loading audio. Try again.";
+        await logAudioError(speedState.currentSong, speedState.songArtist || selectedArtist);
+        // Select new song and restart round
+        const { songName, songArtist } = selectNewSpeedSong();
+        speedState.currentSong = songName;
+        speedState.songArtist = songArtist;
+        speedState.skips = 0;
+        speedState.strikes = 0;
+        speedState.guessed = false;
+        speedState.startTime = 0;
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSpeedRound();
+        }, 1000);
     });
     
     // Button always says "Play" - don't change text
@@ -2835,9 +2995,38 @@ document.getElementById("speedSkip").onclick = () => {
     speedState.audio = new Audio(url);
     speedState.audio.currentTime = speedState.startTime;
     
-    speedState.audio.play().catch(err => {
+    speedState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(speedState.currentSong, speedState.songArtist || selectedArtist);
+        // Select new song and restart round
+        const { songName, songArtist } = selectNewSpeedSong();
+        speedState.currentSong = songName;
+        speedState.songArtist = songArtist;
+        speedState.skips = 0;
+        speedState.strikes = 0;
+        speedState.guessed = false;
+        speedState.startTime = 0;
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSpeedRound();
+        }, 1000);
+    });
+    
+    speedState.audio.play().catch(async (err) => {
         console.error("Error playing audio:", err);
-        document.getElementById("speedFeedback").textContent = "Error loading audio. Try again.";
+        await logAudioError(speedState.currentSong, speedState.songArtist || selectedArtist);
+        // Select new song and restart round
+        const { songName, songArtist } = selectNewSpeedSong();
+        speedState.currentSong = songName;
+        speedState.songArtist = songArtist;
+        speedState.skips = 0;
+        speedState.strikes = 0;
+        speedState.guessed = false;
+        speedState.startTime = 0;
+        document.getElementById("speedFeedback").textContent = "Error loading audio. Selecting new song...";
+        setTimeout(() => {
+            startSpeedRound();
+        }, 1000);
     });
     
     speedState.progressInterval = setInterval(() => {
@@ -3468,9 +3657,26 @@ document.getElementById("h2hPlay").onclick = () => {
         h2hState.audio = new Audio(url);
         h2hState.audio.currentTime = 0;
         
-        h2hState.audio.play().catch(err => {
+        h2hState.audio.addEventListener('error', async (e) => {
+            console.error("Error loading audio:", e);
+            await logAudioError(h2hState.currentSong, h2hState.songArtist || selectedArtist);
+            // Request new song from server
+            document.getElementById("h2hStatus").textContent = "Error loading audio. Requesting new song...";
+            socket.emit("requestNewSong", { 
+                lobbyId: h2hState.lobbyId, 
+                username: h2hState.username 
+            });
+        });
+        
+        h2hState.audio.play().catch(async (err) => {
             console.error("Error playing audio:", err);
-            document.getElementById("h2hStatus").textContent = "Error loading audio. Try again.";
+            await logAudioError(h2hState.currentSong, h2hState.songArtist || selectedArtist);
+            // Request new song from server
+            document.getElementById("h2hStatus").textContent = "Error loading audio. Requesting new song...";
+            socket.emit("requestNewSong", { 
+                lobbyId: h2hState.lobbyId, 
+                username: h2hState.username 
+            });
         });
         
         document.getElementById("h2hPlay").textContent = "Pause";
@@ -3500,9 +3706,26 @@ document.getElementById("h2hPlay").onclick = () => {
     h2hState.audio = new Audio(url);
     h2hState.audio.currentTime = h2hState.startTime;
     
-    h2hState.audio.play().catch(err => {
+    h2hState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(h2hState.currentSong, h2hState.songArtist || selectedArtist);
+        // Request new song from server
+        document.getElementById("h2hStatus").textContent = "Error loading audio. Requesting new song...";
+        socket.emit("requestNewSong", { 
+            lobbyId: h2hState.lobbyId, 
+            username: h2hState.username 
+        });
+    });
+    
+    h2hState.audio.play().catch(async (err) => {
         console.error("Error playing audio:", err);
-        document.getElementById("h2hStatus").textContent = "Error loading audio. Try again.";
+        await logAudioError(h2hState.currentSong, h2hState.songArtist || selectedArtist);
+        // Request new song from server
+        document.getElementById("h2hStatus").textContent = "Error loading audio. Requesting new song...";
+        socket.emit("requestNewSong", { 
+            lobbyId: h2hState.lobbyId, 
+            username: h2hState.username 
+        });
     });
     
     setTimeout(() => {
@@ -4370,7 +4593,7 @@ function playNextTwoMinuteSong() {
     
     twoMinuteState.audio.addEventListener('ended', twoMinuteState.audioEndedHandler);
     
-    twoMinuteState.audio.addEventListener('error', (e) => {
+    twoMinuteState.audio.addEventListener('error', async (e) => {
         console.error("[2MIN] ERROR loading audio!");
         console.error("[2MIN] Error event:", e);
         console.error("[2MIN] Error type:", e.type);
@@ -4381,8 +4604,17 @@ function playNextTwoMinuteSong() {
         console.error("[2MIN] Song:", songName);
         console.error("[2MIN] Audio readyState:", twoMinuteState.audio.readyState);
         console.error("[2MIN] Audio src:", twoMinuteState.audio.src);
-        document.getElementById("twoMinuteFeedback").textContent = "Error loading audio";
-        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+        
+        // Log error
+        await logAudioError(songName, songArtist || selectedArtist);
+        
+        // Skip to next song
+        twoMinuteState.currentSongIndex++;
+        setTimeout(() => {
+            if (!twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+                playNextTwoMinuteSong();
+            }
+        }, 500);
     });
     
     console.log("[2MIN] Calling audio.play()");
@@ -4390,7 +4622,7 @@ function playNextTwoMinuteSong() {
         console.log("[2MIN] Audio play() succeeded");
         console.log("[2MIN] Audio paused:", twoMinuteState.audio.paused);
         console.log("[2MIN] Audio currentTime:", twoMinuteState.audio.currentTime);
-    }).catch(e => {
+    }).catch(async (e) => {
         console.error("[2MIN] ERROR playing audio!");
         console.error("[2MIN] Play error:", e);
         console.error("[2MIN] Error name:", e.name);
@@ -4400,8 +4632,17 @@ function playNextTwoMinuteSong() {
         console.error("[2MIN] Song:", songName);
         console.error("[2MIN] Audio readyState:", twoMinuteState.audio.readyState);
         console.error("[2MIN] Audio src:", twoMinuteState.audio.src);
-        document.getElementById("twoMinuteFeedback").textContent = "Error playing audio";
-        document.getElementById("twoMinuteFeedback").className = "feedback incorrect";
+        
+        // Log error
+        await logAudioError(songName, songArtist || selectedArtist);
+        
+        // Skip to next song
+        twoMinuteState.currentSongIndex++;
+        setTimeout(() => {
+            if (!twoMinuteState.gameOver && twoMinuteState.timeRemaining > 0) {
+                playNextTwoMinuteSong();
+            }
+        }, 500);
     });
     
     // Clear feedback

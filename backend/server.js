@@ -4,6 +4,12 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Supabase configuration
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://ggkanqgcvvxtpdhzmoon.supabase.co";
@@ -418,6 +424,45 @@ app.post("/api/two-minute-leaderboard", async (req, res) => {
     } catch (error) {
         console.error("Error saving 2 minute leaderboard:", error);
         res.status(500).json({ error: "Failed to save leaderboard entry", details: error.message });
+    }
+});
+
+// Log audio errors to file
+app.post("/api/log-audio-error", async (req, res) => {
+    try {
+        const { song_name, artist } = req.body;
+        
+        if (!song_name || !artist) {
+            return res.status(400).json({ error: "song_name and artist required" });
+        }
+        
+        const errorLogPath = path.join(__dirname, 'audio_errors.txt');
+        const entry = `${song_name}|${artist}\n`;
+        
+        // Read existing file to check for duplicates
+        let existingEntries = new Set();
+        if (fs.existsSync(errorLogPath)) {
+            const content = fs.readFileSync(errorLogPath, 'utf8');
+            content.split('\n').forEach(line => {
+                const trimmed = line.trim();
+                if (trimmed) {
+                    existingEntries.add(trimmed);
+                }
+            });
+        }
+        
+        // Check if entry already exists
+        if (existingEntries.has(entry.trim())) {
+            return res.json({ success: true, message: "Entry already exists" });
+        }
+        
+        // Append to file
+        fs.appendFileSync(errorLogPath, entry, 'utf8');
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error logging audio error:", error);
+        res.status(500).json({ error: "Failed to log error" });
     }
 });
 
