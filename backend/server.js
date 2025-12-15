@@ -427,7 +427,7 @@ app.post("/api/two-minute-leaderboard", async (req, res) => {
     }
 });
 
-// Log audio errors to file
+// Log audio errors to Supabase (audio_errors table)
 app.post("/api/log-audio-error", async (req, res) => {
     try {
         const { song_name, artist } = req.body;
@@ -436,30 +436,21 @@ app.post("/api/log-audio-error", async (req, res) => {
             return res.status(400).json({ error: "song_name and artist required" });
         }
         
-        const errorLogPath = path.join(__dirname, 'audio_errors.txt');
-        const entry = `${song_name}|${artist}\n`;
+        // Upsert into audio_errors table, enforcing uniqueness by (song_name, artist)
+        const { data, error } = await supabase
+            .from('audio_errors')
+            .upsert(
+                [{ song_name, artist }],
+                { onConflict: 'song_name,artist' }
+            )
+            .select();
         
-        // Read existing file to check for duplicates
-        let existingEntries = new Set();
-        if (fs.existsSync(errorLogPath)) {
-            const content = fs.readFileSync(errorLogPath, 'utf8');
-            content.split('\n').forEach(line => {
-                const trimmed = line.trim();
-                if (trimmed) {
-                    existingEntries.add(trimmed);
-                }
-            });
+        if (error) {
+            console.error("Supabase error logging audio error:", error);
+            return res.status(500).json({ error: "Failed to log error" });
         }
         
-        // Check if entry already exists
-        if (existingEntries.has(entry.trim())) {
-            return res.json({ success: true, message: "Entry already exists" });
-        }
-        
-        // Append to file
-        fs.appendFileSync(errorLogPath, entry, 'utf8');
-        
-        res.json({ success: true });
+        res.json({ success: true, data });
     } catch (error) {
         console.error("Error logging audio error:", error);
         res.status(500).json({ error: "Failed to log error" });

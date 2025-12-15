@@ -1858,6 +1858,82 @@ async function logAudioError(songName, artist) {
     }
 }
 
+// ---------------------------
+// GLOBAL AUDIO VISUALIZER
+// ---------------------------
+let audioCtx = null;
+let audioAnalyser = null;
+let audioSourceNode = null;
+let audioVizAnimationId = null;
+
+function initAudioVisualizer() {
+    if (audioCtx) return;
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        audioAnalyser = audioCtx.createAnalyser();
+        audioAnalyser.fftSize = 64;
+        audioAnalyser.smoothingTimeConstant = 0.8;
+    } catch (e) {
+        console.warn("Web Audio API not supported, visualizer disabled.", e);
+    }
+}
+
+function attachAudioToVisualizer(audioEl) {
+    if (!audioEl) return;
+    if (!audioCtx) {
+        initAudioVisualizer();
+        if (!audioCtx) return;
+    }
+    
+    // Resume context on user gesture
+    if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+    }
+    
+    // Avoid creating multiple sources for the same element
+    try {
+        if (audioSourceNode) {
+            audioSourceNode.disconnect();
+        }
+        audioSourceNode = audioCtx.createMediaElementSource(audioEl);
+        audioSourceNode.connect(audioAnalyser);
+        audioAnalyser.connect(audioCtx.destination);
+    } catch (e) {
+        // If source already exists for this element, ignore
+        console.warn("Error attaching audio element to visualizer:", e);
+    }
+    
+    const canvas = document.getElementById("audioVisualizerCanvas");
+    if (!canvas || !audioAnalyser) return;
+    const ctx = canvas.getContext("2d");
+    const bufferLength = audioAnalyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    if (audioVizAnimationId) {
+        cancelAnimationFrame(audioVizAnimationId);
+    }
+    
+    function draw() {
+        audioVizAnimationId = requestAnimationFrame(draw);
+        audioAnalyser.getByteFrequencyData(dataArray);
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const barWidth = (canvas.width / bufferLength) * 1.5;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 255;
+            const barHeight = v * canvas.height;
+            ctx.fillStyle = `rgba(0, 255, 128, ${0.4 + v * 0.6})`;
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 1;
+        }
+    }
+    
+    draw();
+}
+
 // Helper function to construct audio file URL for a song using Cloudflare R2
 // songArtist is optional - if provided, use it; otherwise determine from song name
 function getAudioUrl(songName, songArtist = null) {
@@ -2303,6 +2379,7 @@ document.getElementById("soloPlay").onclick = () => {
         
         const url = getAudioUrl(soloState.currentSong, soloState.songArtist);
         soloState.audio = new Audio(url);
+        attachAudioToVisualizer(soloState.audio);
         soloState.audio.currentTime = 0;
         
         soloState.audio.addEventListener('error', async (e) => {
@@ -2892,6 +2969,7 @@ document.getElementById("speedPlay").onclick = () => {
     const url = getAudioUrl(speedState.currentSong, speedState.songArtist);
     
     speedState.audio = new Audio(url);
+    attachAudioToVisualizer(speedState.audio);
     speedState.audio.currentTime = speedState.startTime;
     
     speedState.audio.addEventListener('error', async (e) => {
@@ -3655,6 +3733,7 @@ document.getElementById("h2hPlay").onclick = () => {
         
         const url = getAudioUrl(h2hState.currentSong, h2hState.songArtist);
         h2hState.audio = new Audio(url);
+        attachAudioToVisualizer(h2hState.audio);
         h2hState.audio.currentTime = 0;
         
         h2hState.audio.addEventListener('error', async (e) => {
@@ -4552,6 +4631,7 @@ function playNextTwoMinuteSong() {
     console.log("[2MIN] Creating new Audio element");
     
     twoMinuteState.audio = new Audio(audioUrl);
+    attachAudioToVisualizer(twoMinuteState.audio);
     
     console.log("[2MIN] Audio element created:", twoMinuteState.audio);
     console.log("[2MIN] Audio src:", twoMinuteState.audio.src);
