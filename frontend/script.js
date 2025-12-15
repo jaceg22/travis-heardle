@@ -2986,10 +2986,13 @@ async function loadLeaderboard(mode) {
     
     try {
         let response;
+        const artistPrefix = selectedArtist || 'travis';
         if (mode === 'speed') {
             // Speed mode includes artist in the request
-            const artistPrefix = selectedArtist || 'travis';
             response = await fetch(`${BACKEND_URL}/api/speed-leaderboard?artist=${artistPrefix}`);
+        } else if (mode === 'two-minute') {
+            // 2 Minute mode includes artist in the request
+            response = await fetch(`${BACKEND_URL}/api/two-minute-leaderboard?artist=${artistPrefix}`);
         } else {
             response = await fetch(`${BACKEND_URL}/api/leaderboard/${mode}`);
         }
@@ -3021,6 +3024,15 @@ async function loadLeaderboard(mode) {
                         <span class="leaderboard-rank">${index + 1}</span>
                         <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
                         <span class="leaderboard-time">${timeString}</span>
+                    </div>
+                `;
+            } else if (mode === 'two-minute') {
+                // 2 Minute mode displays songs guessed
+                html += `
+                    <div class="leaderboard-row ${index < 3 ? 'rank-' + (index + 1) : ''}">
+                        <span class="leaderboard-rank">${index + 1}</span>
+                        <span class="leaderboard-username">${entry.username || 'Unknown'}</span>
+                        <span class="leaderboard-score">${entry.songs_guessed || 0} songs</span>
                     </div>
                 `;
             } else {
@@ -3075,7 +3087,7 @@ function showLeaderboardPopup() {
     document.querySelectorAll('.leaderboard-tab').forEach(tab => {
         tab.classList.remove('active');
         const baseMode = tab.dataset.mode;
-        const prefixedMode = baseMode === 'speed' ? 'speed' : `${artistPrefix}-${baseMode}`;
+        const prefixedMode = (baseMode === 'speed' || baseMode === 'two-minute') ? baseMode : `${artistPrefix}-${baseMode}`;
         if (prefixedMode === currentLeaderboardMode) {
             tab.classList.add('active');
         }
@@ -3100,7 +3112,7 @@ document.querySelectorAll('.leaderboard-tab').forEach(tab => {
         tab.classList.add('active');
         const baseMode = tab.dataset.mode;
         const artistPrefix = selectedArtist || 'travis';
-        currentLeaderboardMode = baseMode === 'speed' ? 'speed' : `${artistPrefix}-${baseMode}`;
+        currentLeaderboardMode = (baseMode === 'speed' || baseMode === 'two-minute') ? baseMode : `${artistPrefix}-${baseMode}`;
         loadLeaderboard(currentLeaderboardMode);
     };
 });
