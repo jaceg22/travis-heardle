@@ -20,11 +20,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // SONG LISTS
 // ---------------------------
 import { drakeSongs } from './drake_songs.js';
-import { bbbmSongs } from './bbbm_songs.js';
 import { lilteccaSongs } from './liltecca_songs.js';
 import { lilbabySongs } from './lilbaby_songs.js';
 import { kendrickSongs } from './kendrick_songs.js';
 import { kanyeSongs } from './kanye_songs.js';
+import { demiSongs } from './demi_songs.js';
+import { btrSongs } from './btr_songs.js';
 
 const travisSongs = [
   "16 Chapels",
@@ -112,8 +113,6 @@ function getSongsForArtist(artist) {
         return [...travisSongs, ...drakeSongs, ...lilteccaSongs, ...lilbabySongs, ...kendrickSongs, ...kanyeSongs];
     } else if (artist === 'drake') {
         return drakeSongs;
-    } else if (artist === 'bbbm') {
-        return bbbmSongs;
     } else if (artist === 'liltecca') {
         return lilteccaSongs;
     } else if (artist === 'lilbaby') {
@@ -122,6 +121,10 @@ function getSongsForArtist(artist) {
         return kendrickSongs;
     } else if (artist === 'kanye') {
         return kanyeSongs;
+    } else if (artist === 'demi') {
+        return demiSongs;
+    } else if (artist === 'btr') {
+        return btrSongs;
     }
     return travisSongs;
 }

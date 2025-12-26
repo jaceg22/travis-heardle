@@ -9,12 +9,13 @@ const R2_PUBLIC_URLS = {
     travis: 'https://pub-8ae2a9bcf0924a44ba373e8e64badd68.r2.dev',
     drake: 'https://pub-f23f1ecab6c7445e8a19980474554deb.r2.dev',
     liltecca: 'https://pub-c30b681927a64769b6f6abe522f33b80.r2.dev',
-    bbbm: 'https://pub-9e5222dfa3a94b5487bacd2300d24648.r2.dev',
     album: 'https://pub-7afdb7ae46e64d4981ebeda51a6cec5d.r2.dev',
     // New artists
     kanye: 'https://pub-0b4313b4af4b4a9a9318b78e80af6cc2.r2.dev',
     kendrick: 'https://pub-af106888801c475e8fe5d07a3e5983d5.r2.dev',
-    lilbaby: 'https://pub-9301e2ae621f453aa6a6cc123575606c.r2.dev'
+    lilbaby: 'https://pub-9301e2ae621f453aa6a6cc123575606c.r2.dev',
+    demi: 'https://placeholder.r2.dev', // Placeholder - update with actual R2 URL
+    btr: 'https://placeholder.r2.dev' // Placeholder - update with actual R2 URL
 };
 
 const BACKEND_URL = "https://travis-heardle.onrender.com";
@@ -24,11 +25,12 @@ const R2_BUCKETS = {
     travis: 'songs',
     drake: 'drake',
     liltecca: 'lil-tecca',
-    bbbm: 'bbbm',
     album: 'album',
     kanye: 'kanye',
     kendrick: 'kendrick',
-    lilbaby: 'lil-baby'
+    lilbaby: 'lil-baby',
+    demi: 'demi', // Placeholder
+    btr: 'btr' // Placeholder
 };
 
 // Legacy variables for compatibility
@@ -39,7 +41,7 @@ const SUPABASE_COVERS_BASE = R2_PUBLIC_URLS.album || '';
 // USER AUTHENTICATION STATE
 // ---------------------------
 let currentUser = null;
-let selectedArtist = null; // 'travis', 'drake', 'bbbm', 'liltecca', 'lilbaby', 'kendrick', 'kanye', or 'chooserappers'
+let selectedArtist = null; // 'travis', 'drake', 'liltecca', 'lilbaby', 'kendrick', 'kanye', 'demi', 'btr', or 'chooserappers'
 let selectedRappers = ['travis', 'drake', 'liltecca', 'lilbaby', 'kendrick', 'kanye']; // Array of selected rappers for 'chooserappers' mode
 
 // Check if user is logged in from localStorage
@@ -158,8 +160,6 @@ function showHomePage() {
     // Update title based on selected artist
     if (selectedArtist === 'drake') {
         document.querySelector("#home h1").textContent = "Drake Heardle";
-    } else if (selectedArtist === 'bbbm') {
-        document.querySelector("#home h1").textContent = "Big Black Banana Man Heardle";
     } else if (selectedArtist === 'liltecca') {
         document.querySelector("#home h1").textContent = "Lil Tecca Heardle";
     } else if (selectedArtist === 'lilbaby') {
@@ -168,6 +168,10 @@ function showHomePage() {
         document.querySelector("#home h1").textContent = "Kendrick Lamar Heardle";
     } else if (selectedArtist === 'kanye') {
         document.querySelector("#home h1").textContent = "Kanye West Heardle";
+    } else if (selectedArtist === 'demi') {
+        document.querySelector("#home h1").textContent = "Demi Lovato Heardle";
+    } else if (selectedArtist === 'btr') {
+        document.querySelector("#home h1").textContent = "Big Time Rush Heardle";
     } else if (selectedArtist === 'chooserappers') {
         const rapperNames = selectedRappers.map(r => {
             if (r === 'travis') return 'Travis Scott';
@@ -343,10 +347,6 @@ document.getElementById("drakeSelectBtn").onclick = () => {
     selectArtist('drake');
 };
 
-document.getElementById("bbbmSelectBtn").onclick = () => {
-    selectArtist('bbbm');
-};
-
 document.getElementById("lilteccaSelectBtn").onclick = () => {
     selectArtist('liltecca');
 };
@@ -361,6 +361,14 @@ document.getElementById("kendrickSelectBtn").onclick = () => {
 
 document.getElementById("kanyeSelectBtn").onclick = () => {
     selectArtist('kanye');
+};
+
+document.getElementById("demiSelectBtn").onclick = () => {
+    selectArtist('demi');
+};
+
+document.getElementById("btrSelectBtn").onclick = () => {
+    selectArtist('btr');
 };
 
 // Choose Rappers handlers
@@ -1035,20 +1043,323 @@ const DRAKE_ALBUM_COVERS = {
   "With You ft. PARTYNEXTDOOR": "views"
 };
 
-// Big Black Banana Man songs list
-const BBBM_SONGS = [
-  "Hey Its 21",
-  "Astagfurillah",
-  "Whats Happen Gonna Next",
-  "Free Mr Sandhu ft. Mr Nize"
+// Demi Lovato songs list
+const DEMI_SONGS = [
+  // Don't Forget (2008)
+  "Believe In Me",
+  "Don't Forget",
+  "Get Back",
+  "Gonna Get Caught",
+  "La La Land",
+  "On the Line",
+  "Party",
+  "The Middle",
+  "Trainwreck",
+  "Two Worlds Collide",
+  "Until You're Mine",
+  
+  // Here We Go Again (2009)
+  "Catch Me",
+  "Every Time You Lie",
+  "Everything You're Not",
+  "Falling Over Me",
+  "Gift of a Friend",
+  "Got Dynamite",
+  "Here We Go Again",
+  "Quiet",
+  "Remember December",
+  "So Far So Great",
+  "Solo",
+  "Stop The World",
+  "U Got Nothin' On Me",
+  "World Of Chances",
+  
+  // Unbroken (2011)
+  "All Night Long",
+  "Fix a Heart",
+  "For the Love of a Daughter",
+  "Give Your Heart a Break",
+  "Hold Up",
+  "In Real Life",
+  "Lightweight",
+  "Mistake",
+  "My Love Is Like a Star",
+  "Skyscraper",
+  "Together",
+  "Unbroken",
+  "Who's That Boy",
+  "You're My Only Shorty",
+  
+  // Demi (2013)
+  "Something That We're Not",
+  "Fire Starter",
+  "Heart Attack",
+  "I Hate You, Don't Leave Me",
+  "In Case",
+  "Made In The USA",
+  "Neon Lights",
+  "Never Been Hurt",
+  "Nightingale",
+  "Really Don't Care",
+  "Shouldn't Come Back",
+  "Two Pieces",
+  "Warrior",
+  "Without The Love",
+  
+  // Confident (2015)
+  "Confident",
+  "Cool for the Summer",
+  "Father",
+  "For You",
+  "Kingdom Come",
+  "Lionheart",
+  "Mr. Hughes",
+  "Old Ways",
+  "Stars",
+  "Stone Cold",
+  "Waitin for You",
+  "Wildfire",
+  "Yes",
+  
+  // Tell Me You Love Me (2017)
+  "Concentrate",
+  "Cry Baby",
+  "Daddy Issues",
+  "Games",
+  "Hitchhiker",
+  "Instruction",
+  "Lonely",
+  "Only Forever",
+  "Ready For Ya",
+  "Ruin The Friendship",
+  "Sexy Dirty Love",
+  "Smoke & Mirrors",
+  "Sober",
+  "Sorry Not Sorry",
+  "Tell Me You Love Me",
+  "You Don't Do It For Me Anymore",
+  
+  // Dancing With The Devil... The Art Of Starting Over (2021) - DWTD
+  "15 Minutes",
+  "Anyone",
+  "Butterfly",
+  "California Sober",
+  "Carefully",
+  "Dancing With The Devil",
+  "Easy",
+  "Good Place",
+  "I Love Me",
+  "I'm Ready",
+  "ICU",
+  "Intro",
+  "Lonely People",
+  "Mad World",
+  "Melon Cake",
+  "Met Him Last Night",
+  "My Girlfriends Are My Boyfriend",
+  "OK Not To Be OK",
+  "Sunset",
+  "The Art Of Starting Over",
+  "The Kind Of Lover I Am",
+  "The Way You Don't Look At Me",
+  "What Other People Say",
+  
+  // HOLY FVCK (2022)
+  "29",
+  "4 EVER 4 ME",
+  "BONES",
+  "CITY OF ANGELS",
+  "COME TOGETHER",
+  "DEAD FRIENDS",
+  "EAT ME",
+  "FEED",
+  "FREAK",
+  "HAPPY ENDING",
+  "HEAVEN",
+  "HELP ME",
+  "SKIN OF MY TEETH",
+  "SUBSTANCE",
+  "WASTED",
+  
+  // I'm In The Dark (2023) - INTD
+  "Before I Knew You",
+  "Fast",
+  "Frequency",
+  "Ghost",
+  "Here All Night",
+  "In My Head",
+  "Joshua Tree",
+  "Kiss",
+  "Let You Go",
+  "Little Bit",
+  "Say It",
+  "Sorry To Myself"
 ];
 
-// Big Black Banana Man album mapping
-const BBBM_ALBUM_COVERS = {
-  "Hey Its 21": "21",
-  "Astagfurillah": "ast",
-  "Whats Happen Gonna Next": "whgn",
-  "Free Mr Sandhu ft. Mr Nize": "sandhu"
+// Demi Lovato album mapping
+// Image files in Supabase: Dont Forget.jpg, Here We Go Again.jpg, Unbroken.jpg, Demi.jpg, Confident.jpg, TMYLM.jpg, DWTD.jpg, HOLY FVCK.jpg, INTD.jpg
+const DEMI_ALBUM_COVERS = {
+  // Don't Forget (2008)
+  "Believe In Me": "Dont Forget",
+  "Don't Forget": "Dont Forget",
+  "Get Back": "Dont Forget",
+  "Gonna Get Caught": "Dont Forget",
+  "La La Land": "Dont Forget",
+  "On the Line": "Dont Forget",
+  "Party": "Dont Forget",
+  "The Middle": "Dont Forget",
+  "Trainwreck": "Dont Forget",
+  "Two Worlds Collide": "Dont Forget",
+  "Until You're Mine": "Dont Forget",
+  
+  // Here We Go Again (2009)
+  "Catch Me": "Here We Go Again",
+  "Every Time You Lie": "Here We Go Again",
+  "Everything You're Not": "Here We Go Again",
+  "Falling Over Me": "Here We Go Again",
+  "Gift of a Friend": "Here We Go Again",
+  "Got Dynamite": "Here We Go Again",
+  "Here We Go Again": "Here We Go Again",
+  "Quiet": "Here We Go Again",
+  "Remember December": "Here We Go Again",
+  "So Far So Great": "Here We Go Again",
+  "Solo": "Here We Go Again",
+  "Stop The World": "Here We Go Again",
+  "U Got Nothin' On Me": "Here We Go Again",
+  "World Of Chances": "Here We Go Again",
+  
+  // Unbroken (2011)
+  "All Night Long": "Unbroken",
+  "Fix a Heart": "Unbroken",
+  "For the Love of a Daughter": "Unbroken",
+  "Give Your Heart a Break": "Unbroken",
+  "Hold Up": "Unbroken",
+  "In Real Life": "Unbroken",
+  "Lightweight": "Unbroken",
+  "Mistake": "Unbroken",
+  "My Love Is Like a Star": "Unbroken",
+  "Skyscraper": "Unbroken",
+  "Together": "Unbroken",
+  "Unbroken": "Unbroken",
+  "Who's That Boy": "Unbroken",
+  "You're My Only Shorty": "Unbroken",
+  
+  // Demi (2013)
+  "Something That We're Not": "Demi",
+  "Fire Starter": "Demi",
+  "Heart Attack": "Demi",
+  "I Hate You, Don't Leave Me": "Demi",
+  "In Case": "Demi",
+  "Made In The USA": "Demi",
+  "Neon Lights": "Demi",
+  "Never Been Hurt": "Demi",
+  "Nightingale": "Demi",
+  "Really Don't Care": "Demi",
+  "Shouldn't Come Back": "Demi",
+  "Two Pieces": "Demi",
+  "Warrior": "Demi",
+  "Without The Love": "Demi",
+  
+  // Confident (2015)
+  "Confident": "Confident",
+  "Cool for the Summer": "Confident",
+  "Father": "Confident",
+  "For You": "Confident",
+  "Kingdom Come": "Confident",
+  "Lionheart": "Confident",
+  "Mr. Hughes": "Confident",
+  "Old Ways": "Confident",
+  "Stars": "Confident",
+  "Stone Cold": "Confident",
+  "Waitin for You": "Confident",
+  "Wildfire": "Confident",
+  "Yes": "Confident",
+  
+  // Tell Me You Love Me (2017)
+  "Concentrate": "TMYLM",
+  "Cry Baby": "TMYLM",
+  "Daddy Issues": "TMYLM",
+  "Games": "TMYLM",
+  "Hitchhiker": "TMYLM",
+  "Instruction": "TMYLM",
+  "Lonely": "TMYLM",
+  "Only Forever": "TMYLM",
+  "Ready For Ya": "TMYLM",
+  "Ruin The Friendship": "TMYLM",
+  "Sexy Dirty Love": "TMYLM",
+  "Smoke & Mirrors": "TMYLM",
+  "Sober": "TMYLM",
+  "Sorry Not Sorry": "TMYLM",
+  "Tell Me You Love Me": "TMYLM",
+  "You Don't Do It For Me Anymore": "TMYLM",
+  
+  // Dancing With The Devil... The Art Of Starting Over (2021)
+  "15 Minutes": "DWTD",
+  "Anyone": "DWTD",
+  "Butterfly": "DWTD",
+  "California Sober": "DWTD",
+  "Carefully": "DWTD",
+  "Dancing With The Devil": "DWTD",
+  "Easy": "DWTD",
+  "Good Place": "DWTD",
+  "I Love Me": "DWTD",
+  "I'm Ready": "DWTD",
+  "ICU": "DWTD",
+  "Intro": "DWTD",
+  "Lonely People": "DWTD",
+  "Mad World": "DWTD",
+  "Melon Cake": "DWTD",
+  "Met Him Last Night": "DWTD",
+  "My Girlfriends Are My Boyfriend": "DWTD",
+  "OK Not To Be OK": "DWTD",
+  "Sunset": "DWTD",
+  "The Art Of Starting Over": "DWTD",
+  "The Kind Of Lover I Am": "DWTD",
+  "The Way You Don't Look At Me": "DWTD",
+  "What Other People Say": "DWTD",
+  
+  // HOLY FVCK (2022)
+  "29": "HOLY FVCK",
+  "4 EVER 4 ME": "HOLY FVCK",
+  "BONES": "HOLY FVCK",
+  "CITY OF ANGELS": "HOLY FVCK",
+  "COME TOGETHER": "HOLY FVCK",
+  "DEAD FRIENDS": "HOLY FVCK",
+  "EAT ME": "HOLY FVCK",
+  "FEED": "HOLY FVCK",
+  "FREAK": "HOLY FVCK",
+  "HAPPY ENDING": "HOLY FVCK",
+  "HEAVEN": "HOLY FVCK",
+  "HELP ME": "HOLY FVCK",
+  "SKIN OF MY TEETH": "HOLY FVCK",
+  "SUBSTANCE": "HOLY FVCK",
+  "WASTED": "HOLY FVCK",
+  
+  // I'm In The Dark (2023)
+  "Before I Knew You": "INTD",
+  "Fast": "INTD",
+  "Frequency": "INTD",
+  "Ghost": "INTD",
+  "Here All Night": "INTD",
+  "In My Head": "INTD",
+  "Joshua Tree": "INTD",
+  "Kiss": "INTD",
+  "Let You Go": "INTD",
+  "Little Bit": "INTD",
+  "Say It": "INTD",
+  "Sorry To Myself": "INTD"
+};
+
+// Big Time Rush songs list
+// Placeholder - songs will be added later
+const BTR_SONGS = [
+  // Placeholder - songs will be added later
+];
+
+// Big Time Rush album mapping
+// Placeholder - album covers will be added later
+const BTR_ALBUM_COVERS = {
+  // Placeholder - album covers will be added later
 };
 
 // Lil Tecca songs list
@@ -1751,6 +2062,12 @@ function getArtistsForSong(songName) {
     if (KANYE_SONGS.includes(songName)) {
         artists.push('kanye');
     }
+    if (DEMI_SONGS.includes(songName)) {
+        artists.push('demi');
+    }
+    if (BTR_SONGS.includes(songName)) {
+        artists.push('btr');
+    }
     return artists;
 }
 
@@ -1792,8 +2109,6 @@ function getSongsForArtist(artist) {
         return songs;
     } else if (artist === 'drake') {
         return DRAKE_SONGS;
-    } else if (artist === 'bbbm') {
-        return BBBM_SONGS;
     } else if (artist === 'liltecca') {
         return LILTECCA_SONGS;
     } else if (artist === 'lilbaby') {
@@ -1802,6 +2117,10 @@ function getSongsForArtist(artist) {
         return KENDRICK_SONGS;
     } else if (artist === 'kanye') {
         return KANYE_SONGS;
+    } else if (artist === 'demi') {
+        return DEMI_SONGS;
+    } else if (artist === 'btr') {
+        return BTR_SONGS;
     }
     return SONGS;
 }
@@ -1831,8 +2150,6 @@ function getAlbumMapForArtist(artist) {
         return covers;
     } else if (artist === 'drake') {
         return DRAKE_ALBUM_COVERS;
-    } else if (artist === 'bbbm') {
-        return BBBM_ALBUM_COVERS;
     } else if (artist === 'liltecca') {
         return LILTECCA_ALBUM_COVERS;
     } else if (artist === 'lilbaby') {
@@ -1841,6 +2158,10 @@ function getAlbumMapForArtist(artist) {
         return KENDRICK_ALBUM_COVERS;
     } else if (artist === 'kanye') {
         return KANYE_ALBUM_COVERS;
+    } else if (artist === 'demi') {
+        return DEMI_ALBUM_COVERS;
+    } else if (artist === 'btr') {
+        return BTR_ALBUM_COVERS;
     }
     return ALBUM_COVERS;
 }
@@ -1856,82 +2177,6 @@ async function logAudioError(songName, artist) {
     } catch (error) {
         console.error("Failed to log audio error:", error);
     }
-}
-
-// ---------------------------
-// GLOBAL AUDIO VISUALIZER
-// ---------------------------
-let audioCtx = null;
-let audioAnalyser = null;
-let audioSourceNode = null;
-let audioVizAnimationId = null;
-
-function initAudioVisualizer() {
-    if (audioCtx) return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContextClass();
-        audioAnalyser = audioCtx.createAnalyser();
-        audioAnalyser.fftSize = 64;
-        audioAnalyser.smoothingTimeConstant = 0.8;
-    } catch (e) {
-        console.warn("Web Audio API not supported, visualizer disabled.", e);
-    }
-}
-
-function attachAudioToVisualizer(audioEl) {
-    if (!audioEl) return;
-    if (!audioCtx) {
-        initAudioVisualizer();
-        if (!audioCtx) return;
-    }
-    
-    // Resume context on user gesture
-    if (audioCtx.state === "suspended") {
-        audioCtx.resume().catch(() => {});
-    }
-    
-    // Avoid creating multiple sources for the same element
-    try {
-        if (audioSourceNode) {
-            audioSourceNode.disconnect();
-        }
-        audioSourceNode = audioCtx.createMediaElementSource(audioEl);
-        audioSourceNode.connect(audioAnalyser);
-        audioAnalyser.connect(audioCtx.destination);
-    } catch (e) {
-        // If source already exists for this element, ignore
-        console.warn("Error attaching audio element to visualizer:", e);
-    }
-    
-    const canvas = document.getElementById("audioVisualizerCanvas");
-    if (!canvas || !audioAnalyser) return;
-    const ctx = canvas.getContext("2d");
-    const bufferLength = audioAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    
-    if (audioVizAnimationId) {
-        cancelAnimationFrame(audioVizAnimationId);
-    }
-    
-    function draw() {
-        audioVizAnimationId = requestAnimationFrame(draw);
-        audioAnalyser.getByteFrequencyData(dataArray);
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const barWidth = (canvas.width / bufferLength) * 1.5;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            const v = dataArray[i] / 255;
-            const barHeight = v * canvas.height;
-            ctx.fillStyle = `rgba(0, 255, 128, ${0.4 + v * 0.6})`;
-            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-            x += barWidth + 1;
-        }
-    }
-    
-    draw();
 }
 
 // Helper function to construct audio file URL for a song using Cloudflare R2
@@ -2379,7 +2624,6 @@ document.getElementById("soloPlay").onclick = () => {
         
         const url = getAudioUrl(soloState.currentSong, soloState.songArtist);
         soloState.audio = new Audio(url);
-        attachAudioToVisualizer(soloState.audio);
         soloState.audio.currentTime = 0;
         
         soloState.audio.addEventListener('error', async (e) => {
@@ -2781,7 +3025,7 @@ async function startSpeedRound() {
         songName = speedState.songQueue[speedState.round - 1];
         speedState.songsPlayed.push(songName);
     } else {
-        // Old behavior: random selection (artist has fewer than 15 songs, like bbbm)
+        // Old behavior: random selection (for artists with fewer than 15 songs)
         const songs = getSongsForArtist(selectedArtist || 'travis');
         let availableSongs = songs.filter(s => !speedState.songsPlayed.includes(s));
         if (availableSongs.length === 0) {
@@ -2969,7 +3213,6 @@ document.getElementById("speedPlay").onclick = () => {
     const url = getAudioUrl(speedState.currentSong, speedState.songArtist);
     
     speedState.audio = new Audio(url);
-    attachAudioToVisualizer(speedState.audio);
     speedState.audio.currentTime = speedState.startTime;
     
     speedState.audio.addEventListener('error', async (e) => {
@@ -3733,7 +3976,6 @@ document.getElementById("h2hPlay").onclick = () => {
         
         const url = getAudioUrl(h2hState.currentSong, h2hState.songArtist);
         h2hState.audio = new Audio(url);
-        attachAudioToVisualizer(h2hState.audio);
         h2hState.audio.currentTime = 0;
         
         h2hState.audio.addEventListener('error', async (e) => {
@@ -4392,11 +4634,12 @@ function hideAutocomplete(mode) {
 // ---------------------------
 function getArtistDefaultCoverKey(artist) {
     if (artist === 'drake') return 'drake';
-    if (artist === 'bbbm') return 'bbbm';
     if (artist === 'liltecca') return 'liltecca';
     if (artist === 'lilbaby') return 'lilbaby';
     if (artist === 'kendrick') return 'kendrick';
     if (artist === 'kanye') return 'kanye';
+    if (artist === 'demi') return 'demi';
+    if (artist === 'btr') return 'btr';
     return 'travis';
 }
 
@@ -4631,7 +4874,6 @@ function playNextTwoMinuteSong() {
     console.log("[2MIN] Creating new Audio element");
     
     twoMinuteState.audio = new Audio(audioUrl);
-    attachAudioToVisualizer(twoMinuteState.audio);
     
     console.log("[2MIN] Audio element created:", twoMinuteState.audio);
     console.log("[2MIN] Audio src:", twoMinuteState.audio.src);

@@ -29,9 +29,6 @@ export default {
       case 'lil-tecca':
         bucket = env.LILTECCA_BUCKET;
         break;
-      case 'bbbm':
-        bucket = env.BBBM_BUCKET;
-        break;
       case 'album':
         bucket = env.ALBUM_BUCKET;
         break;

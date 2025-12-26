@@ -30,7 +30,6 @@ const buckets = [
     'songs',      // Travis Scott
     'Drake',
     'Lil Tecca',
-    'BBBM',
     'album'       // Album covers
 ];
 
