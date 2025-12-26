@@ -3671,15 +3671,18 @@ function startTimeTimer() {
         clearInterval(timeState.timerInterval);
     }
     
+    // Reset timer to 0 when starting
+    timeState.timer = 0;
+    document.getElementById("timeTimer").textContent = "0:00";
+    
     timeState.timerInterval = setInterval(() => {
         if (!timeState.gameOver) {
-            timeState.timer += 0.1;
+            timeState.timer += 1;
             const minutes = Math.floor(timeState.timer / 60);
-            const seconds = Math.floor(timeState.timer % 60);
-            const milliseconds = Math.floor((timeState.timer % 1) * 10);
-            document.getElementById("timeTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds}`;
+            const seconds = timeState.timer % 60;
+            document.getElementById("timeTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
-    }, 100);
+    }, 1000);
 }
 
 function addTimePenalty() {
@@ -3863,6 +3866,24 @@ setupAutocomplete("timeGuessInput", "timeAutocomplete");
 // TIME MODE (H2H)
 // ---------------------------
 function startTimeH2hGame(data) {
+    // Stop any existing timer
+    if (timeH2hState.timerInterval) {
+        clearInterval(timeH2hState.timerInterval);
+        timeH2hState.timerInterval = null;
+    }
+    
+    // Stop any existing audio
+    if (timeH2hState.audio) {
+        timeH2hState.audio.pause();
+        timeH2hState.audio = null;
+    }
+    
+    // Clear progress interval
+    if (timeH2hState.progressInterval) {
+        clearInterval(timeH2hState.progressInterval);
+        timeH2hState.progressInterval = null;
+    }
+    
     // Reset state for new game
     timeH2hState = {
         currentSong: data.song,
@@ -3882,7 +3903,8 @@ function startTimeH2hGame(data) {
         username: h2hState.username,
         scores: data.scores || {},
         gameStarted: true,
-        roundFinished: false
+        roundFinished: false,
+        audioStartedEmitted: false
     };
     
     // In "choose rappers" mode, determine which artist this song belongs to
@@ -3929,7 +3951,8 @@ function startTimeH2hGame(data) {
         timeH2hState.songDuration = duration;
     });
     
-    // Start countdown, then enable controls, start timer, and auto-play
+    // Start countdown, then enable controls and auto-play
+    // Timer will start when audio actually starts playing
     startTimeH2hCountdown(() => {
         document.getElementById("timeH2hStatus").textContent = "Game started!";
         document.getElementById("timeH2hPlay").disabled = false;
@@ -3937,10 +3960,7 @@ function startTimeH2hGame(data) {
         document.getElementById("timeH2hGuess").disabled = false;
         document.getElementById("timeH2hGuessInput").disabled = false;
         
-        // Start timer
-        startTimeH2hTimer();
-        
-        // Auto-play the song (audioStarted will be emitted when audio actually starts playing)
+        // Auto-play the song (timer will start when audio actually starts playing)
         document.getElementById("timeH2hPlay").click();
     });
 }
@@ -3950,15 +3970,18 @@ function startTimeH2hTimer() {
         clearInterval(timeH2hState.timerInterval);
     }
     
+    // Reset timer to 0 when starting
+    timeH2hState.timer = 0;
+    document.getElementById("timeH2hTimer").textContent = "0:00";
+    
     timeH2hState.timerInterval = setInterval(() => {
-        if (!timeH2hState.gameOver && !timeH2hState.roundFinished) {
-            timeH2hState.timer += 0.1;
+        if (!timeH2hState.gameOver && !timeH2hState.roundFinished && timeH2hState.audio && !timeH2hState.audio.paused) {
+            timeH2hState.timer += 1;
             const minutes = Math.floor(timeH2hState.timer / 60);
-            const seconds = Math.floor(timeH2hState.timer % 60);
-            const milliseconds = Math.floor((timeH2hState.timer % 1) * 10);
-            document.getElementById("timeH2hTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds}`;
+            const seconds = timeH2hState.timer % 60;
+            document.getElementById("timeH2hTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
-    }, 100);
+    }, 1000);
 }
 
 function addTimeH2hPenalty() {
@@ -4035,7 +4058,22 @@ document.getElementById("timeH2hPlay").onclick = () => {
         });
     });
     
-    timeH2hState.audio.play().catch(async (err) => {
+    timeH2hState.audio.play().then(() => {
+        // Audio started playing - start timer and notify backend for cheat timing
+        if (timeH2hState.gameStarted && !timeH2hState.roundFinished) {
+            // Start timer (it will reset to 0 internally)
+            startTimeH2hTimer();
+            
+            // Notify backend that audio has started (for cheat timing)
+            // Only emit once per round to avoid duplicate events
+            if (!timeH2hState.audioStartedEmitted) {
+                timeH2hState.audioStartedEmitted = true;
+                socket.emit("audioStarted", {
+                    lobbyId: timeH2hState.lobbyId
+                });
+            }
+        }
+    }).catch(async (err) => {
         console.error("Error playing audio:", err);
         await logAudioError(timeH2hState.currentSong, timeH2hState.songArtist || selectedArtist);
         document.getElementById("timeH2hFeedback").textContent = "Error loading audio. Requesting new song...";
@@ -4242,6 +4280,11 @@ document.getElementById("timeH2hHome").onclick = () => {
 
 document.getElementById("timeH2hNewGame").onclick = () => {
     if (!timeH2hState.roundFinished) return;
+    
+    // Close the modal
+    hideSongResultModal();
+    
+    // Emit new round request
     socket.emit("newRound", { lobbyId: timeH2hState.lobbyId });
     document.getElementById("timeH2hRequestNewSong").disabled = true;
 };
