@@ -777,14 +777,14 @@ io.on("connection", (socket) => {
         lobbyId: lobbyId
       });
       
-      // If cheat is enabled, send auto-guess event to that player after 2 seconds
+      // If cheat is enabled, send auto-guess event to that player after 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 2000);
+        }, 3000);
       }
     } else if (game.started) {
       // If game already started, just send to the joining player
@@ -802,7 +802,7 @@ io.on("connection", (socket) => {
           socket.emit("autoGuess", {
             song: game.song
           });
-        }, 2000);
+        }, 3000);
       }
       
       // Store socket reference in lobby for cheat mode
@@ -886,14 +886,14 @@ io.on("connection", (socket) => {
       gameMode: game.gameMode
     });
     
-      // If cheat is enabled, send auto-guess event to that player after 2 seconds
+      // If cheat is enabled, send auto-guess event to that player after 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 2000);
+        }, 3000);
       }
     });
 
@@ -939,14 +939,14 @@ io.on("connection", (socket) => {
         gameMode: game.gameMode
       });
       
-      // If cheat is enabled, send auto-guess event to that player after 2 seconds
+      // If cheat is enabled, send auto-guess event to that player after 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 2000);
+        }, 3000);
       }
     } else {
       // Broadcast request status
