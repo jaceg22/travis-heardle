@@ -3661,11 +3661,18 @@ async function startTimeRound() {
     document.getElementById("timeFeedback").className = "feedback";
     document.getElementById("timeGuessInput").value = "";
     
+    // Reset progress bar
+    const progressFill = document.getElementById("timeSongProgressFill");
+    if (progressFill) {
+        progressFill.style.width = "0%";
+    }
+    
     // Enable controls
     document.getElementById("timePlay").disabled = false;
     document.getElementById("timeRequestNewSong").disabled = false;
     document.getElementById("timeGuess").disabled = false;
     document.getElementById("timeGuessInput").disabled = false;
+    document.getElementById("timeNewGame").disabled = true; // Disable until round ends
     
     timeState.songDuration = await getSongDuration(songName, songArtist);
 }
@@ -3801,29 +3808,38 @@ document.getElementById("timeGuess").onclick = () => {
     }
     
     if (matchedSong.toLowerCase() === timeState.currentSong.toLowerCase()) {
-        // Correct guess
+        // Correct guess - round is over
         timeState.guessed = true;
+        timeState.gameOver = true; // Mark round as finished
         const strikeIndex = timeState.strikes;
         updateProgressBar('time', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
         document.getElementById("timeFeedback").textContent = `Correct!`;
         document.getElementById("timeFeedback").className = "feedback correct";
         
+        // Stop music
         if (timeState.audio) {
             timeState.audio.pause();
+            timeState.audio = null;
         }
         
         if (timeState.progressInterval) {
             clearInterval(timeState.progressInterval);
+            timeState.progressInterval = null;
         }
         
-        // Show result modal
-        showSongResultModal(timeState.currentSong, "Correct!", true);
+        // Disable controls
+        document.getElementById("timePlay").disabled = true;
+        document.getElementById("timeRequestNewSong").disabled = true;
+        document.getElementById("timeGuess").disabled = true;
+        document.getElementById("timeGuessInput").disabled = true;
         
-        // Start new round after delay
-        setTimeout(() => {
-            startTimeRound();
-        }, 2000);
+        // Enable New Game button
+        document.getElementById("timeNewGame").disabled = false;
+        
+        // Show result modal with song name
+        const tries = timeState.strikes + 1;
+        showSongResultModal(timeState.currentSong, `You guessed "${timeState.currentSong}" in ${tries} tries!`, true);
         
         hideAutocomplete("time");
         return;
@@ -3853,8 +3869,10 @@ document.getElementById("timeHome").onclick = () => {
 };
 
 document.getElementById("timeNewGame").onclick = () => {
-    endTimeGame();
-    startTimeGame();
+    // Reset state and start new round
+    timeState.gameOver = false;
+    timeState.guessed = false;
+    startTimeRound();
 };
 
 // Setup autocomplete for Time mode
@@ -3911,6 +3929,13 @@ function startTimeH2hGame(data) {
     document.getElementById("timeH2hFeedback").className = "feedback";
     document.getElementById("timeH2hGuessInput").value = "";
     document.getElementById("timeH2hLobbyText").innerText = `Lobby: ${timeH2hState.lobbyId}`;
+    
+    // Reset progress bar
+    const progressFill = document.getElementById("timeH2hSongProgressFill");
+    if (progressFill) {
+        progressFill.style.width = "0%";
+    }
+    
     updateTimeH2hScoreDisplay();
     
     // Disable controls during countdown
@@ -4104,53 +4129,63 @@ document.getElementById("timeH2hGuess").onclick = () => {
         document.getElementById("timeH2hFeedback").className = "feedback not-found";
         document.getElementById("timeH2hGuessInput").value = "";
         
-        socket.emit("guess", {
-            lobbyId: timeH2hState.lobbyId,
-            username: timeH2hState.username,
-            song: guess,
-            strikes: timeH2hState.strikes
-        });
-        
         if (timeH2hState.strikes >= 6) {
-            timeH2hState.roundFinished = true;
-            document.getElementById("timeH2hFeedback").textContent = `Game Over! The song was: ${timeH2hState.currentSong}`;
+            timeH2hState.finished = true;
+            document.getElementById("timeH2hFeedback").textContent = `Out of strikes! Waiting for song name...`;
+            document.getElementById("timeH2hFeedback").className = "feedback incorrect";
             document.getElementById("timeH2hPlay").disabled = true;
             document.getElementById("timeH2hGuess").disabled = true;
-            document.getElementById("timeH2hGuessInput").disabled = true;
+            if (timeH2hState.audio) {
+                timeH2hState.audio.pause();
+            }
+            // Notify server that player struck out
+            socket.emit("playerStrikesOut", {
+                lobbyId: timeH2hState.lobbyId,
+                username: timeH2hState.username,
+                strikes: timeH2hState.strikes
+            });
         }
         hideAutocomplete("timeH2h");
         return;
     }
     
     if (matchedSong.toLowerCase() === timeH2hState.currentSong.toLowerCase()) {
-        // Correct guess
+        // Correct guess - stop music and wait for gameOver event
         timeH2hState.guessed = true;
-        timeH2hState.roundFinished = true;
+        timeH2hState.finished = true;
         const strikeIndex = timeH2hState.strikes;
         updateProgressBar('timeH2h', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
-        document.getElementById("timeH2hFeedback").textContent = `Correct!`;
+        document.getElementById("timeH2hFeedback").textContent = `Correct! Waiting for opponent...`;
         document.getElementById("timeH2hFeedback").className = "feedback correct";
         
+        // Stop music
         if (timeH2hState.audio) {
             timeH2hState.audio.pause();
+            timeH2hState.audio = null;
         }
         
         if (timeH2hState.progressInterval) {
             clearInterval(timeH2hState.progressInterval);
+            timeH2hState.progressInterval = null;
         }
         
-        socket.emit("guess", {
+        // Disable request new song button
+        document.getElementById("timeH2hRequestNewSong").disabled = true;
+        
+        // Use playerGuess event like regular h2h mode
+        socket.emit("playerGuess", {
             lobbyId: timeH2hState.lobbyId,
             username: timeH2hState.username,
-            song: matchedSong,
+            guess: matchedSong,
+            duration: timeH2hState.timer,
+            timestamp: Date.now(),
             strikes: timeH2hState.strikes
         });
         
         document.getElementById("timeH2hPlay").disabled = true;
         document.getElementById("timeH2hGuess").disabled = true;
         document.getElementById("timeH2hGuessInput").disabled = true;
-        document.getElementById("timeH2hNewGame").disabled = false;
         
         hideAutocomplete("timeH2h");
         return;
@@ -4166,20 +4201,21 @@ document.getElementById("timeH2hGuess").onclick = () => {
     document.getElementById("timeH2hFeedback").className = "feedback incorrect";
     document.getElementById("timeH2hGuessInput").value = "";
     
-    socket.emit("guess", {
-        lobbyId: timeH2hState.lobbyId,
-        username: timeH2hState.username,
-        song: matchedSong,
-        strikes: timeH2hState.strikes
-    });
-    
     if (timeH2hState.strikes >= 6) {
-        timeH2hState.roundFinished = true;
-        document.getElementById("timeH2hFeedback").textContent = `Game Over! The song was: ${timeH2hState.currentSong}`;
+        timeH2hState.finished = true;
+        document.getElementById("timeH2hFeedback").textContent = `Out of strikes! Waiting for song name...`;
+        document.getElementById("timeH2hFeedback").className = "feedback incorrect";
         document.getElementById("timeH2hPlay").disabled = true;
         document.getElementById("timeH2hGuess").disabled = true;
-        document.getElementById("timeH2hGuessInput").disabled = true;
-        document.getElementById("timeH2hNewGame").disabled = false;
+        if (timeH2hState.audio) {
+            timeH2hState.audio.pause();
+        }
+        // Notify server that player struck out
+        socket.emit("playerStrikesOut", {
+            lobbyId: timeH2hState.lobbyId,
+            username: timeH2hState.username,
+            strikes: timeH2hState.strikes
+        });
     }
     hideAutocomplete("timeH2h");
 };
@@ -4194,6 +4230,15 @@ socket.on("autoGuess", data => {
     // Auto-fill and submit guess
     document.getElementById("timeH2hGuessInput").value = data.song;
     document.getElementById("timeH2hGuess").click();
+});
+
+// Handle playerStrikesOutResponse for time mode
+socket.on("playerStrikesOutResponse", data => {
+    if (gameMode !== 'time') return;
+    document.getElementById("timeH2hFeedback").textContent = `Out of strikes! The song was: ${data.song}`;
+    document.getElementById("timeH2hFeedback").className = "feedback incorrect";
+    // Show result modal
+    showSongResultModal(data.song, `Incorrect! The song was: ${data.song}`, false);
 });
 
 // Handle cheat disabled for time mode
@@ -4249,6 +4294,72 @@ socket.on("chat", data => {
     messageDiv.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+// Handle gameOver event for time H2H mode
+socket.on("gameOver", data => {
+    if (gameMode !== 'time') return; // Only handle for time mode
+    
+    timeH2hState.roundFinished = true;
+    timeH2hState.scores = data.scores || timeH2hState.scores;
+    updateTimeH2hScoreDisplay();
+    
+    const songName = data.song || timeH2hState.currentSong;
+    const isWinner = data.winner === timeH2hState.username;
+    const guessedCorrectly = timeH2hState.guessed;
+    
+    let message = "";
+    let feedbackMessage = "";
+    
+    if (isWinner) {
+        message = `You won! You guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
+        document.getElementById("timeH2hFeedback").className = "feedback correct";
+        feedbackMessage = `Correct song: ${songName}`;
+    } else {
+        if (guessedCorrectly && data.winnerStrikes !== undefined) {
+            if (data.sameStrikes) {
+                message = `${data.winner} guessed "${songName}" in first`;
+            } else {
+                const winnerTries = data.winnerStrikes !== undefined ? data.winnerStrikes + 1 : '?';
+                message = `${data.winner} guessed "${songName}" in ${winnerTries} tries`;
+            }
+            document.getElementById("timeH2hFeedback").className = "feedback correct";
+            feedbackMessage = `Correct song: ${songName}`;
+        } else {
+            message = `${data.winner} won! They guessed in ${data.winnerDuration}s with ${data.winnerStrikes || '?'} strikes`;
+            document.getElementById("timeH2hFeedback").className = "feedback incorrect";
+            feedbackMessage = `Out of strikes! The song was: ${songName}`;
+        }
+    }
+    
+    document.getElementById("timeH2hStatus").textContent = message;
+    document.getElementById("timeH2hRequestNewSong").disabled = true;
+    document.getElementById("timeH2hFeedback").textContent = feedbackMessage;
+    timeH2hState.finished = true;
+    
+    // Disable game controls
+    document.getElementById("timeH2hPlay").disabled = true;
+    document.getElementById("timeH2hGuess").disabled = true;
+    document.getElementById("timeH2hGuessInput").disabled = true;
+    
+    // Enable New Game button
+    document.getElementById("timeH2hNewGame").disabled = false;
+    
+    if (timeH2hState.audio) {
+        timeH2hState.audio.pause();
+    }
+    
+    // Show result modal
+    const winnerTries = data.winnerStrikes !== undefined ? data.winnerStrikes + 1 : '?';
+    const resultMessage = isWinner 
+        ? `You guessed "${songName}" in ${winnerTries} tries!`
+        : guessedCorrectly && data.winnerStrikes !== undefined
+            ? (data.sameStrikes 
+                ? `${data.winner} guessed "${songName}" in first`
+                : `${data.winner} guessed "${songName}" in ${winnerTries} tries`)
+            : `Incorrect! The song was: ${songName}`;
+    
+    showSongResultModal(songName, resultMessage, guessedCorrectly || isWinner);
 });
 
 // Setup autocomplete for Time H2H mode
