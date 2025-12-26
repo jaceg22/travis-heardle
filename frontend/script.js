@@ -3929,7 +3929,7 @@ function startTimeH2hGame(data) {
         timeH2hState.songDuration = duration;
     });
     
-    // Start countdown, then enable controls
+    // Start countdown, then enable controls, start timer, and auto-play
     startTimeH2hCountdown(() => {
         document.getElementById("timeH2hStatus").textContent = "Game started!";
         document.getElementById("timeH2hPlay").disabled = false;
@@ -3939,6 +3939,9 @@ function startTimeH2hGame(data) {
         
         // Start timer
         startTimeH2hTimer();
+        
+        // Auto-play the song (audioStarted will be emitted when audio actually starts playing)
+        document.getElementById("timeH2hPlay").click();
     });
 }
 
