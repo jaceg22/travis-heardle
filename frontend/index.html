@@ -123,11 +123,13 @@
             <h3>Solo</h3>
             <button id="soloRegularBtn" class="mode-btn">Regular</button>
             <button id="soloRandomBtn" class="mode-btn">Random</button>
+            <button id="soloTimeBtn" class="mode-btn">Time</button>
         </div>
         <div class="mode-option">
             <h3>H2H</h3>
             <button id="h2hRegularBtn" class="mode-btn">Regular</button>
             <button id="h2hRandomBtn" class="mode-btn">Random</button>
+            <button id="h2hTimeBtn" class="mode-btn">Time</button>
         </div>
         <div class="mode-option">
             <h3>Speed</h3>
@@ -325,6 +327,112 @@
         <button id="leaderboardBack" class="home-btn-top">Back</button>
         <div id="leaderboardList" class="leaderboard-list">
             <!-- Leaderboard entries will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- TIME MODE (SOLO) -->
+<div id="timeGame" style="display:none;">
+    <div class="game-header">
+        <button id="timeHome" class="home-btn-top">Home</button>
+        <div class="speed-info">
+            <span id="timeTimer" class="timer-display">0:00</span>
+            <span id="timeStrikes" class="strikes-display">0/6 strikes</span>
+        </div>
+    </div>
+
+    <div class="progress-bars-container">
+        <div id="timeBar1" class="progress-bar"></div>
+        <div id="timeBar2" class="progress-bar"></div>
+        <div id="timeBar3" class="progress-bar"></div>
+        <div id="timeBar4" class="progress-bar"></div>
+        <div id="timeBar5" class="progress-bar"></div>
+        <div id="timeBar6" class="progress-bar"></div>
+    </div>
+
+    <div class="song-progress-container">
+        <div id="timeSongProgress" class="song-progress-bar">
+            <div id="timeSongProgressFill" class="song-progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <button id="timePlay" class="control-btn">Play</button>
+        <button id="timeRequestNewSong" class="control-btn">Request New Song</button>
+        <button id="timeGuess" class="control-btn">Guess</button>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="timeGuessInput" placeholder="Your Guess" autocomplete="off">
+            <div id="timeAutocomplete" class="autocomplete-list"></div>
+        </div>
+    </div>
+
+    <div id="timeFeedback" class="feedback"></div>
+    <button id="timeNewGame" class="new-game-btn">New Game</button>
+</div>
+
+<!-- TIME MODE (H2H) -->
+<div id="timeH2hGame" style="display:none;">
+    <div class="game-header">
+        <button id="timeH2hHome" class="home-btn-top">Home</button>
+        <div class="speed-info">
+            <span id="timeH2hTimer" class="timer-display">0:00</span>
+            <span id="timeH2hStrikes" class="strikes-display">0/6 strikes</span>
+        </div>
+    </div>
+
+    <div id="timeH2hScore" class="score-display"></div>
+    <div id="timeH2hLobbyText" class="lobby-info"></div>
+
+    <div class="progress-bars-container">
+        <div id="timeH2hBar1" class="progress-bar"></div>
+        <div id="timeH2hBar2" class="progress-bar"></div>
+        <div id="timeH2hBar3" class="progress-bar"></div>
+        <div id="timeH2hBar4" class="progress-bar"></div>
+        <div id="timeH2hBar5" class="progress-bar"></div>
+        <div id="timeH2hBar6" class="progress-bar"></div>
+    </div>
+
+    <div class="song-progress-container">
+        <div id="timeH2hSongProgress" class="song-progress-bar">
+            <div id="timeH2hSongProgressFill" class="song-progress-fill"></div>
+        </div>
+    </div>
+
+    <div class="controls-container">
+        <button id="timeH2hPlay" class="control-btn">Play</button>
+        <button id="timeH2hRequestNewSong" class="control-btn">Request New Song</button>
+        <button id="timeH2hGuess" class="control-btn">Guess</button>
+    </div>
+
+    <div class="guess-section">
+        <div class="autocomplete-wrapper">
+            <input id="timeH2hGuessInput" placeholder="Your Guess" autocomplete="off">
+            <div id="timeH2hAutocomplete" class="autocomplete-list"></div>
+        </div>
+    </div>
+
+    <p id="timeH2hStatus" class="status"></p>
+    <div id="timeH2hFeedback" class="feedback"></div>
+    
+    <!-- Countdown Overlay -->
+    <div id="timeH2hCountdown" class="countdown-overlay" style="display: none;">
+        <div class="countdown-number" id="timeH2hCountdownNumber">3</div>
+    </div>
+    
+    <div class="game-actions">
+        <button id="timeH2hNewGame" class="new-game-btn" disabled>New Game</button>
+    </div>
+
+    <!-- CHAT SECTION -->
+    <div class="chat-container" id="timeH2hChatContainer">
+        <div class="chat-resize-handle" id="timeH2hChatResize"></div>
+        <div id="timeH2hChatMessages" class="chat-messages"></div>
+        <div class="chat-input-container">
+            <input id="timeH2hChatInput" placeholder="Type a message..." autocomplete="off">
+            <button id="timeH2hChatSend">Send</button>
         </div>
     </div>
 </div>

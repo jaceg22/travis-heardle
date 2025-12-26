@@ -96,6 +96,8 @@ function showLoginPage() {
     document.getElementById("speedGame").style.display = "none";
     document.getElementById("speedGameOver").style.display = "none";
     document.getElementById("speedLeaderboard").style.display = "none";
+    document.getElementById("timeGame").style.display = "none";
+    document.getElementById("timeH2hGame").style.display = "none";
 }
 
 function showArtistSelection() {
@@ -109,6 +111,8 @@ function showArtistSelection() {
     document.getElementById("speedGame").style.display = "none";
     document.getElementById("speedGameOver").style.display = "none";
     document.getElementById("speedLeaderboard").style.display = "none";
+    document.getElementById("timeGame").style.display = "none";
+    document.getElementById("timeH2hGame").style.display = "none";
 }
 
 function showChooseRappersPage() {
@@ -122,6 +126,8 @@ function showChooseRappersPage() {
     document.getElementById("speedGame").style.display = "none";
     document.getElementById("speedGameOver").style.display = "none";
     document.getElementById("speedLeaderboard").style.display = "none";
+    document.getElementById("timeGame").style.display = "none";
+    document.getElementById("timeH2hGame").style.display = "none";
     
     // Load saved rappers or default to all checked
     const savedRappers = localStorage.getItem('selectedRappers');
@@ -156,6 +162,8 @@ function showHomePage() {
     document.getElementById("twoMinuteGame").style.display = "none";
     document.getElementById("twoMinuteGameOver").style.display = "none";
     document.getElementById("twoMinuteLeaderboard").style.display = "none";
+    document.getElementById("timeGame").style.display = "none";
+    document.getElementById("timeH2hGame").style.display = "none";
     
     // Update title based on selected artist
     if (selectedArtist === 'drake') {
@@ -2303,6 +2311,39 @@ let twoMinuteState = {
     audioEndedHandler: null
 };
 
+// Time mode state (solo)
+let timeState = {
+    currentSong: null,
+    songArtist: null,
+    audio: null,
+    guessed: false,
+    strikes: 0,
+    startTime: 0,
+    songDuration: 0,
+    progressInterval: null,
+    timer: 0,
+    timerInterval: null,
+    gameOver: false,
+    requestNewSong: false
+};
+
+// Time mode state (h2h)
+let timeH2hState = {
+    currentSong: null,
+    songArtist: null,
+    audio: null,
+    guessed: false,
+    strikes: 0,
+    startTime: 0,
+    songDuration: 0,
+    progressInterval: null,
+    timer: 0,
+    timerInterval: null,
+    gameOver: false,
+    requestNewSong: false,
+    newSongRequests: new Set() // Track which players requested new song
+};
+
 // ---------------------------
 // DOM ELEMENTS
 // ---------------------------
@@ -2401,6 +2442,44 @@ document.getElementById("twoMinuteBtn").onclick = () => {
     document.getElementById("twoMinuteGame").style.display = "block";
     document.getElementById("twoMinuteGameOver").style.display = "none";
     resetTwoMinuteGame();
+};
+
+// Time mode button handlers
+document.getElementById("soloTimeBtn").onclick = () => {
+    currentMode = 'solo';
+    gameMode = 'time';
+    home.style.display = "none";
+    document.getElementById("timeGame").style.display = "block";
+    startTimeGame();
+};
+
+document.getElementById("h2hTimeBtn").onclick = () => {
+    currentMode = 'h2h';
+    gameMode = 'time';
+    home.style.display = "none";
+    h2hMenu.style.display = "block";
+    // Pre-fill and disable username if logged in
+    if (currentUser && currentUser.username) {
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.value = currentUser.username;
+        joinInput.value = currentUser.username;
+        createInput.disabled = true;
+        joinInput.disabled = true;
+        createInput.style.backgroundColor = "#333";
+        createInput.style.color = "#999";
+        joinInput.style.backgroundColor = "#333";
+        joinInput.style.color = "#999";
+    } else {
+        const createInput = document.getElementById("createUsername");
+        const joinInput = document.getElementById("joinUsername");
+        createInput.disabled = false;
+        joinInput.disabled = false;
+        createInput.style.backgroundColor = "";
+        createInput.style.color = "";
+        joinInput.style.backgroundColor = "";
+        joinInput.style.color = "";
+    }
 };
 
 document.getElementById("h2hMenuHome").onclick = () => {
@@ -2570,7 +2649,21 @@ async function saveGameHistory(mode, songName, strikes, won, duration = null) {
 
 // Helper function to update progress bars
 function updateProgressBar(mode, index, type, text) {
-    const prefix = mode === 'solo' ? 'solo' : 'h2h';
+    let prefix;
+    if (mode === 'solo') {
+        prefix = 'solo';
+    } else if (mode === 'h2h') {
+        prefix = 'h2h';
+    } else if (mode === 'speed') {
+        prefix = 'speed';
+    } else if (mode === 'time') {
+        prefix = 'time';
+    } else if (mode === 'timeH2h') {
+        prefix = 'timeH2h';
+    } else {
+        prefix = 'solo';
+    }
+    
     const bar = document.getElementById(`${prefix}Bar${index + 1}`);
     if (!bar) return;
     
@@ -3486,6 +3579,682 @@ document.getElementById("speedGameOverHome").onclick = () => {
 setupAutocomplete("speedGuessInput", "speedAutocomplete");
 
 // ---------------------------
+// TIME MODE (SOLO)
+// ---------------------------
+async function startTimeGame() {
+    ensureArtistSelected();
+    
+    // Reset state for new game
+    timeState = {
+        currentSong: null,
+        songArtist: null,
+        audio: null,
+        guessed: false,
+        strikes: 0,
+        startTime: 0,
+        songDuration: 0,
+        progressInterval: null,
+        timer: 0,
+        timerInterval: null,
+        gameOver: false,
+        requestNewSong: false
+    };
+    
+    // Reset UI
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`timeBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    document.getElementById("timeStrikes").textContent = "0/6 strikes";
+    document.getElementById("timeTimer").textContent = "0:00";
+    document.getElementById("timeFeedback").textContent = "";
+    document.getElementById("timeFeedback").className = "feedback";
+    document.getElementById("timeGuessInput").value = "";
+    
+    // Start timer
+    startTimeTimer();
+    
+    // Start first round
+    await startTimeRound();
+}
+
+async function startTimeRound() {
+    ensureArtistSelected();
+    
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let songName = songs[Math.floor(Math.random() * songs.length)];
+    
+    // In "choose rappers" mode, determine which artist this song belongs to
+    let songArtist = null;
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(songName).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            songArtist = selectedRappers[0] || 'travis';
+        }
+    }
+    
+    timeState.currentSong = songName;
+    timeState.songArtist = songArtist;
+    timeState.strikes = 0;
+    timeState.guessed = false;
+    timeState.startTime = 0;
+    timeState.gameOver = false;
+    timeState.requestNewSong = false;
+    
+    // Reset progress bars
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`timeBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    document.getElementById("timeStrikes").textContent = "0/6 strikes";
+    document.getElementById("timeFeedback").textContent = "";
+    document.getElementById("timeFeedback").className = "feedback";
+    document.getElementById("timeGuessInput").value = "";
+    
+    // Enable controls
+    document.getElementById("timePlay").disabled = false;
+    document.getElementById("timeRequestNewSong").disabled = false;
+    document.getElementById("timeGuess").disabled = false;
+    document.getElementById("timeGuessInput").disabled = false;
+    
+    timeState.songDuration = await getSongDuration(songName, songArtist);
+}
+
+function startTimeTimer() {
+    if (timeState.timerInterval) {
+        clearInterval(timeState.timerInterval);
+    }
+    
+    timeState.timerInterval = setInterval(() => {
+        if (!timeState.gameOver) {
+            timeState.timer += 0.1;
+            const minutes = Math.floor(timeState.timer / 60);
+            const seconds = Math.floor(timeState.timer % 60);
+            const milliseconds = Math.floor((timeState.timer % 1) * 10);
+            document.getElementById("timeTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds}`;
+        }
+    }, 100);
+}
+
+function addTimePenalty() {
+    timeState.timer += 3;
+}
+
+function endTimeGame() {
+    timeState.gameOver = true;
+    if (timeState.timerInterval) {
+        clearInterval(timeState.timerInterval);
+    }
+    
+    // Disable controls
+    document.getElementById("timePlay").disabled = true;
+    document.getElementById("timeRequestNewSong").disabled = true;
+    document.getElementById("timeGuess").disabled = true;
+    document.getElementById("timeGuessInput").disabled = true;
+    
+    if (timeState.audio) {
+        timeState.audio.pause();
+    }
+    
+    if (timeState.progressInterval) {
+        clearInterval(timeState.progressInterval);
+    }
+}
+
+// Time mode button handlers
+document.getElementById("timePlay").onclick = () => {
+    if (timeState.gameOver || timeState.guessed || timeState.strikes >= 6) return;
+    if (timeState.audio && !timeState.audio.paused) {
+        timeState.audio.pause();
+        document.getElementById("timePlay").textContent = "Play";
+        return;
+    }
+    
+    const url = getAudioUrl(timeState.currentSong, timeState.songArtist);
+    timeState.audio = new Audio(url);
+    timeState.audio.currentTime = timeState.startTime;
+    
+    timeState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(timeState.currentSong, timeState.songArtist || selectedArtist);
+        document.getElementById("timeFeedback").textContent = "Error loading audio. Requesting new song...";
+        setTimeout(() => {
+            startTimeRound();
+        }, 1000);
+    });
+    
+    timeState.audio.play().catch(async (err) => {
+        console.error("Error playing audio:", err);
+        await logAudioError(timeState.currentSong, timeState.songArtist || selectedArtist);
+        document.getElementById("timeFeedback").textContent = "Error loading audio. Requesting new song...";
+        setTimeout(() => {
+            startTimeRound();
+        }, 1000);
+    });
+    
+    document.getElementById("timePlay").textContent = "Pause";
+    
+    // Update progress bar
+    timeState.progressInterval = setInterval(() => {
+        if (timeState.audio && !timeState.audio.paused) {
+            const current = timeState.audio.currentTime;
+            const total = timeState.songDuration || 180;
+            const overallProgress = (current / total) * 100;
+            document.getElementById("timeSongProgressFill").style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+        }
+    }, 50);
+    
+    timeState.audio.addEventListener('ended', () => {
+        document.getElementById("timePlay").textContent = "Play";
+        if (timeState.progressInterval) {
+            clearInterval(timeState.progressInterval);
+        }
+    });
+};
+
+document.getElementById("timeRequestNewSong").onclick = () => {
+    if (timeState.gameOver) return;
+    startTimeRound();
+};
+
+document.getElementById("timeGuess").onclick = () => {
+    if (timeState.gameOver || timeState.guessed || timeState.strikes >= 6) return;
+    
+    const guess = document.getElementById("timeGuessInput").value.trim();
+    if (!guess) return;
+    
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let matchedSong = null;
+    for (const song of songs) {
+        if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
+            matchedSong = song;
+            break;
+        }
+    }
+    
+    if (!matchedSong) {
+        timeState.strikes++;
+        addTimePenalty(); // 3 second penalty
+        document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
+        const strikeIndex = timeState.strikes - 1;
+        updateProgressBar('time', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
+        document.getElementById("timeFeedback").textContent = `"${guess}": Song not found. Try Again.`;
+        document.getElementById("timeFeedback").className = "feedback not-found";
+        document.getElementById("timeGuessInput").value = "";
+        
+        if (timeState.strikes >= 6) {
+            endTimeGame();
+            document.getElementById("timeFeedback").textContent = `Game Over! The song was: ${timeState.currentSong}`;
+        }
+        hideAutocomplete("time");
+        return;
+    }
+    
+    if (matchedSong.toLowerCase() === timeState.currentSong.toLowerCase()) {
+        // Correct guess
+        timeState.guessed = true;
+        const strikeIndex = timeState.strikes;
+        updateProgressBar('time', strikeIndex, 'correct', 'Guessed Correct!');
+        document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
+        document.getElementById("timeFeedback").textContent = `Correct!`;
+        document.getElementById("timeFeedback").className = "feedback correct";
+        
+        if (timeState.audio) {
+            timeState.audio.pause();
+        }
+        
+        if (timeState.progressInterval) {
+            clearInterval(timeState.progressInterval);
+        }
+        
+        // Show result modal
+        showSongResultModal(timeState.currentSong, "Correct!", true);
+        
+        // Start new round after delay
+        setTimeout(() => {
+            startTimeRound();
+        }, 2000);
+        
+        hideAutocomplete("time");
+        return;
+    }
+    
+    // Wrong song
+    timeState.strikes++;
+    addTimePenalty(); // 3 second penalty
+    document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
+    const strikeIndex = timeState.strikes - 1;
+    updateProgressBar('time', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
+    document.getElementById("timeFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
+    document.getElementById("timeFeedback").className = "feedback incorrect";
+    document.getElementById("timeGuessInput").value = "";
+    
+    if (timeState.strikes >= 6) {
+        endTimeGame();
+        document.getElementById("timeFeedback").textContent = `Game Over! The song was: ${timeState.currentSong}`;
+    }
+    hideAutocomplete("time");
+};
+
+document.getElementById("timeHome").onclick = () => {
+    endTimeGame();
+    document.getElementById("timeGame").style.display = "none";
+    showHomePage();
+};
+
+document.getElementById("timeNewGame").onclick = () => {
+    endTimeGame();
+    startTimeGame();
+};
+
+// Setup autocomplete for Time mode
+setupAutocomplete("timeGuessInput", "timeAutocomplete");
+
+// ---------------------------
+// TIME MODE (H2H)
+// ---------------------------
+function startTimeH2hGame(data) {
+    // Reset state for new game
+    timeH2hState = {
+        currentSong: data.song,
+        songArtist: null,
+        audio: null,
+        guessed: false,
+        strikes: 0,
+        startTime: 0,
+        songDuration: 0,
+        progressInterval: null,
+        timer: 0,
+        timerInterval: null,
+        gameOver: false,
+        requestNewSong: false,
+        newSongRequests: new Set(),
+        lobbyId: data.lobbyId || h2hState.lobbyId,
+        username: h2hState.username,
+        scores: data.scores || {},
+        gameStarted: true,
+        roundFinished: false
+    };
+    
+    // In "choose rappers" mode, determine which artist this song belongs to
+    if (selectedArtist === 'chooserappers') {
+        const artists = getArtistsForSong(data.song).filter(a => selectedRappers.includes(a));
+        if (artists.length > 0) {
+            timeH2hState.songArtist = artists[Math.floor(Math.random() * artists.length)];
+        } else {
+            timeH2hState.songArtist = selectedRappers[0] || 'travis';
+        }
+    }
+    
+    // Reset UI
+    for (let i = 1; i <= 6; i++) {
+        const bar = document.getElementById(`timeH2hBar${i}`);
+        if (bar) {
+            bar.className = 'progress-bar';
+            bar.textContent = '';
+        }
+    }
+    
+    document.getElementById("timeH2hStrikes").textContent = "0/6 strikes";
+    document.getElementById("timeH2hTimer").textContent = "0:00";
+    document.getElementById("timeH2hFeedback").textContent = "";
+    document.getElementById("timeH2hFeedback").className = "feedback";
+    document.getElementById("timeH2hGuessInput").value = "";
+    document.getElementById("timeH2hLobbyText").innerText = `Lobby: ${timeH2hState.lobbyId}`;
+    updateTimeH2hScoreDisplay();
+    
+    // Disable controls during countdown
+    document.getElementById("timeH2hPlay").disabled = true;
+    document.getElementById("timeH2hRequestNewSong").disabled = true;
+    document.getElementById("timeH2hGuess").disabled = true;
+    document.getElementById("timeH2hGuessInput").disabled = true;
+    document.getElementById("timeH2hNewGame").disabled = true;
+    
+    // Get song duration
+    getSongDuration(data.song, timeH2hState.songArtist).then(duration => {
+        timeH2hState.songDuration = duration;
+    });
+    
+    // Start countdown, then enable controls
+    startTimeH2hCountdown(() => {
+        document.getElementById("timeH2hStatus").textContent = "Game started!";
+        document.getElementById("timeH2hPlay").disabled = false;
+        document.getElementById("timeH2hRequestNewSong").disabled = false;
+        document.getElementById("timeH2hGuess").disabled = false;
+        document.getElementById("timeH2hGuessInput").disabled = false;
+        
+        // Start timer
+        startTimeH2hTimer();
+    });
+}
+
+function startTimeH2hTimer() {
+    if (timeH2hState.timerInterval) {
+        clearInterval(timeH2hState.timerInterval);
+    }
+    
+    timeH2hState.timerInterval = setInterval(() => {
+        if (!timeH2hState.gameOver && !timeH2hState.roundFinished) {
+            timeH2hState.timer += 0.1;
+            const minutes = Math.floor(timeH2hState.timer / 60);
+            const seconds = Math.floor(timeH2hState.timer % 60);
+            const milliseconds = Math.floor((timeH2hState.timer % 1) * 10);
+            document.getElementById("timeH2hTimer").textContent = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds}`;
+        }
+    }, 100);
+}
+
+function addTimeH2hPenalty() {
+    timeH2hState.timer += 3;
+}
+
+function updateTimeH2hScoreDisplay() {
+    const scoreDiv = document.getElementById("timeH2hScore");
+    if (Object.keys(timeH2hState.scores).length === 0) {
+        scoreDiv.textContent = "";
+        return;
+    }
+    
+    let scoreText = "Score: ";
+    const players = Object.keys(timeH2hState.scores);
+    scoreText += players.map(username => {
+        const score = timeH2hState.scores[username];
+        return `${username} (${score.wins}W-${score.losses}L)`;
+    }).join(" | ");
+    
+    scoreDiv.textContent = scoreText;
+}
+
+function startTimeH2hCountdown(callback) {
+    const countdownOverlay = document.getElementById("timeH2hCountdown");
+    const countdownNumber = document.getElementById("timeH2hCountdownNumber");
+    
+    if (!countdownOverlay || !countdownNumber) {
+        if (callback) callback();
+        return;
+    }
+    
+    countdownOverlay.style.display = "flex";
+    let count = 3;
+    
+    countdownNumber.textContent = count;
+    countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
+    
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count <= 0) {
+            clearInterval(countdownInterval);
+            countdownOverlay.style.display = "none";
+            if (callback) callback();
+        } else {
+            countdownNumber.textContent = count;
+            countdownNumber.style.animation = "none";
+            void countdownNumber.offsetWidth;
+            countdownNumber.style.animation = "countdownPulse 0.5s ease-out";
+        }
+    }, 1000);
+}
+
+// Time H2H button handlers
+document.getElementById("timeH2hPlay").onclick = () => {
+    if (timeH2hState.gameOver || timeH2hState.guessed || timeH2hState.strikes >= 6 || timeH2hState.roundFinished) return;
+    if (timeH2hState.audio && !timeH2hState.audio.paused) {
+        timeH2hState.audio.pause();
+        document.getElementById("timeH2hPlay").textContent = "Play";
+        return;
+    }
+    
+    const url = getAudioUrl(timeH2hState.currentSong, timeH2hState.songArtist);
+    timeH2hState.audio = new Audio(url);
+    timeH2hState.audio.currentTime = timeH2hState.startTime;
+    
+    timeH2hState.audio.addEventListener('error', async (e) => {
+        console.error("Error loading audio:", e);
+        await logAudioError(timeH2hState.currentSong, timeH2hState.songArtist || selectedArtist);
+        document.getElementById("timeH2hFeedback").textContent = "Error loading audio. Requesting new song...";
+        socket.emit("requestNewSong", { 
+            lobbyId: timeH2hState.lobbyId, 
+            username: timeH2hState.username 
+        });
+    });
+    
+    timeH2hState.audio.play().catch(async (err) => {
+        console.error("Error playing audio:", err);
+        await logAudioError(timeH2hState.currentSong, timeH2hState.songArtist || selectedArtist);
+        document.getElementById("timeH2hFeedback").textContent = "Error loading audio. Requesting new song...";
+        socket.emit("requestNewSong", { 
+            lobbyId: timeH2hState.lobbyId, 
+            username: timeH2hState.username 
+        });
+    });
+    
+    document.getElementById("timeH2hPlay").textContent = "Pause";
+    
+    // Update progress bar
+    timeH2hState.progressInterval = setInterval(() => {
+        if (timeH2hState.audio && !timeH2hState.audio.paused) {
+            const current = timeH2hState.audio.currentTime;
+            const total = timeH2hState.songDuration || 180;
+            const overallProgress = (current / total) * 100;
+            document.getElementById("timeH2hSongProgressFill").style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+        }
+    }, 50);
+    
+    timeH2hState.audio.addEventListener('ended', () => {
+        document.getElementById("timeH2hPlay").textContent = "Play";
+        if (timeH2hState.progressInterval) {
+            clearInterval(timeH2hState.progressInterval);
+        }
+    });
+};
+
+document.getElementById("timeH2hRequestNewSong").onclick = () => {
+    if (timeH2hState.gameOver || timeH2hState.roundFinished) return;
+    socket.emit("requestNewSong", { 
+        lobbyId: timeH2hState.lobbyId, 
+        username: timeH2hState.username 
+    });
+    document.getElementById("timeH2hRequestNewSong").disabled = true;
+    document.getElementById("timeH2hStatus").textContent = "Requested new song. Waiting for other player...";
+};
+
+// Handle new song request status for time mode
+socket.on("newSongRequestStatus", data => {
+    if (gameMode !== 'time') return; // Only handle for time mode
+    
+    const requested = data.requests.length;
+    const total = data.total;
+    if (requested < total) {
+        document.getElementById("timeH2hStatus").textContent = `New song requested (${requested}/${total} players)`;
+    }
+});
+
+document.getElementById("timeH2hGuess").onclick = () => {
+    if (timeH2hState.gameOver || timeH2hState.guessed || timeH2hState.strikes >= 6 || timeH2hState.roundFinished) return;
+    
+    const guess = document.getElementById("timeH2hGuessInput").value.trim();
+    if (!guess) return;
+    
+    const songs = getSongsForArtist(selectedArtist || 'travis');
+    let matchedSong = null;
+    for (const song of songs) {
+        if (song.toLowerCase().replace(/'/g, "") === guess.toLowerCase().replace(/'/g, "")) {
+            matchedSong = song;
+            break;
+        }
+    }
+    
+    if (!matchedSong) {
+        timeH2hState.strikes++;
+        addTimeH2hPenalty(); // 3 second penalty
+        document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
+        const strikeIndex = timeH2hState.strikes - 1;
+        updateProgressBar('timeH2h', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
+        document.getElementById("timeH2hFeedback").textContent = `"${guess}": Song not found. Try Again.`;
+        document.getElementById("timeH2hFeedback").className = "feedback not-found";
+        document.getElementById("timeH2hGuessInput").value = "";
+        
+        socket.emit("guess", {
+            lobbyId: timeH2hState.lobbyId,
+            username: timeH2hState.username,
+            song: guess,
+            strikes: timeH2hState.strikes
+        });
+        
+        if (timeH2hState.strikes >= 6) {
+            timeH2hState.roundFinished = true;
+            document.getElementById("timeH2hFeedback").textContent = `Game Over! The song was: ${timeH2hState.currentSong}`;
+            document.getElementById("timeH2hPlay").disabled = true;
+            document.getElementById("timeH2hGuess").disabled = true;
+            document.getElementById("timeH2hGuessInput").disabled = true;
+        }
+        hideAutocomplete("timeH2h");
+        return;
+    }
+    
+    if (matchedSong.toLowerCase() === timeH2hState.currentSong.toLowerCase()) {
+        // Correct guess
+        timeH2hState.guessed = true;
+        timeH2hState.roundFinished = true;
+        const strikeIndex = timeH2hState.strikes;
+        updateProgressBar('timeH2h', strikeIndex, 'correct', 'Guessed Correct!');
+        document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
+        document.getElementById("timeH2hFeedback").textContent = `Correct!`;
+        document.getElementById("timeH2hFeedback").className = "feedback correct";
+        
+        if (timeH2hState.audio) {
+            timeH2hState.audio.pause();
+        }
+        
+        if (timeH2hState.progressInterval) {
+            clearInterval(timeH2hState.progressInterval);
+        }
+        
+        socket.emit("guess", {
+            lobbyId: timeH2hState.lobbyId,
+            username: timeH2hState.username,
+            song: matchedSong,
+            strikes: timeH2hState.strikes
+        });
+        
+        document.getElementById("timeH2hPlay").disabled = true;
+        document.getElementById("timeH2hGuess").disabled = true;
+        document.getElementById("timeH2hGuessInput").disabled = true;
+        document.getElementById("timeH2hNewGame").disabled = false;
+        
+        hideAutocomplete("timeH2h");
+        return;
+    }
+    
+    // Wrong song
+    timeH2hState.strikes++;
+    addTimeH2hPenalty(); // 3 second penalty
+    document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
+    const strikeIndex = timeH2hState.strikes - 1;
+    updateProgressBar('timeH2h', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
+    document.getElementById("timeH2hFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
+    document.getElementById("timeH2hFeedback").className = "feedback incorrect";
+    document.getElementById("timeH2hGuessInput").value = "";
+    
+    socket.emit("guess", {
+        lobbyId: timeH2hState.lobbyId,
+        username: timeH2hState.username,
+        song: matchedSong,
+        strikes: timeH2hState.strikes
+    });
+    
+    if (timeH2hState.strikes >= 6) {
+        timeH2hState.roundFinished = true;
+        document.getElementById("timeH2hFeedback").textContent = `Game Over! The song was: ${timeH2hState.currentSong}`;
+        document.getElementById("timeH2hPlay").disabled = true;
+        document.getElementById("timeH2hGuess").disabled = true;
+        document.getElementById("timeH2hGuessInput").disabled = true;
+        document.getElementById("timeH2hNewGame").disabled = false;
+    }
+    hideAutocomplete("timeH2h");
+};
+
+// Handle auto-guess for time mode
+socket.on("autoGuess", data => {
+    if (gameMode !== 'time') return; // Only handle for time mode
+    if (!timeH2hState.gameStarted || timeH2hState.guessed || timeH2hState.roundFinished || !timeH2hState.currentSong) {
+        return;
+    }
+    
+    // Auto-fill and submit guess
+    document.getElementById("timeH2hGuessInput").value = data.song;
+    document.getElementById("timeH2hGuess").click();
+});
+
+// Handle cheat disabled for time mode
+socket.on("cheatDisabled", () => {
+    if (gameMode !== 'time') return;
+    if (timeH2hState.gameStarted && !timeH2hState.roundFinished && !timeH2hState.guessed) {
+        document.getElementById("timeH2hGuessInput").disabled = false;
+        document.getElementById("timeH2hGuess").disabled = false;
+        document.getElementById("timeH2hPlay").disabled = false;
+    }
+});
+
+document.getElementById("timeH2hHome").onclick = () => {
+    if (timeH2hState.timerInterval) {
+        clearInterval(timeH2hState.timerInterval);
+    }
+    if (timeH2hState.audio) {
+        timeH2hState.audio.pause();
+    }
+    if (timeH2hState.progressInterval) {
+        clearInterval(timeH2hState.progressInterval);
+    }
+    document.getElementById("timeH2hGame").style.display = "none";
+    showHomePage();
+};
+
+document.getElementById("timeH2hNewGame").onclick = () => {
+    if (!timeH2hState.roundFinished) return;
+    socket.emit("newRound", { lobbyId: timeH2hState.lobbyId });
+    document.getElementById("timeH2hRequestNewSong").disabled = true;
+};
+
+// Setup chat for time H2H mode
+document.getElementById("timeH2hChatSend").onclick = () => {
+    const input = document.getElementById("timeH2hChatInput");
+    const message = input.value.trim();
+    if (!message) return;
+    
+    socket.emit("chat", {
+        lobbyId: timeH2hState.lobbyId,
+        username: timeH2hState.username,
+        message: message
+    });
+    
+    input.value = "";
+};
+
+socket.on("chat", data => {
+    if (gameMode !== 'time') return;
+    const messagesDiv = document.getElementById("timeH2hChatMessages");
+    const messageDiv = document.createElement("div");
+    messageDiv.className = "chat-message";
+    messageDiv.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+// Setup autocomplete for Time H2H mode
+setupAutocomplete("timeH2hGuessInput", "timeH2hAutocomplete");
+
+// ---------------------------
 // LEADERBOARD POPUP
 // ---------------------------
 let currentLeaderboardMode = 'solo-regular';
@@ -3818,7 +4587,17 @@ socket.on("gameStart", data => {
     
     // Make sure we're in the game view
     h2hMenu.style.display = "none";
-    h2hGame.style.display = "block";
+    
+    // For time mode, show timeH2hGame instead of h2hGame
+    if (data.gameMode === 'time') {
+        h2hGame.style.display = "none";
+        document.getElementById("timeH2hGame").style.display = "block";
+        startTimeH2hGame(data);
+        return;
+    } else {
+        document.getElementById("timeH2hGame").style.display = "none";
+        h2hGame.style.display = "block";
+    }
     
     h2hState.currentSong = data.song;
     // In "choose rappers" mode, determine which artist this song belongs to
@@ -4620,6 +5399,10 @@ function hideAutocomplete(mode) {
         listId = "speedAutocomplete";
     } else if (mode === "twoMinute") {
         listId = "twoMinuteAutocomplete";
+    } else if (mode === "time") {
+        listId = "timeAutocomplete";
+    } else if (mode === "timeH2h") {
+        listId = "timeH2hAutocomplete";
     } else {
         return;
     }
@@ -4653,11 +5436,19 @@ function getAlbumCoverUrl(songName) {
     const albumMap = getAlbumMapForArtist(selectedArtist || 'travis');
     if (albumMap[songName]) {
         const albumName = albumMap[songName];
+        // For time mode with demi, use "demil.jpg" instead of "demi.jpg"
+        if ((currentMode === 'time' || gameMode === 'time') && selectedArtist === 'demi' && albumName === 'demi') {
+            return `${SUPABASE_COVERS_BASE}/demil.jpg`;
+        }
         // Try common image extensions
         return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(albumName)}.jpg`;
     }
     // Default album cover based on artist
     const defaultCover = getArtistDefaultCoverKey(selectedArtist || 'travis');
+    // For time mode with demi, use "demil.jpg" instead of "demi.jpg"
+    if ((currentMode === 'time' || gameMode === 'time') && selectedArtist === 'demi' && defaultCover === 'demi') {
+        return `${SUPABASE_COVERS_BASE}/demil.jpg`;
+    }
     return `${SUPABASE_COVERS_BASE}/${defaultCover}.jpg`;
 }
 
@@ -5209,6 +6000,8 @@ function showLoginPage() {
     document.getElementById("speedLeaderboard").style.display = "none";
     document.getElementById("twoMinuteGame").style.display = "none";
     document.getElementById("twoMinuteGameOver").style.display = "none";
+    document.getElementById("timeGame").style.display = "none";
+    document.getElementById("timeH2hGame").style.display = "none";
     document.getElementById("twoMinuteLeaderboard").style.display = "none";
 }
 

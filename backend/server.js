@@ -659,7 +659,7 @@ io.on("connection", (socket) => {
     const lobbyId = Math.random().toString(36).substring(2, 7).toUpperCase();
 
     const selectedSong = randomSong(artist);
-    const start = gameMode === 'random' ? randomStart() : 0;
+    const start = gameMode === 'random' ? randomStart() : (gameMode === 'time' ? 0 : 0);
 
     lobbies[lobbyId] = {
       song: selectedSong,
@@ -777,14 +777,18 @@ io.on("connection", (socket) => {
         lobbyId: lobbyId
       });
       
-      // If cheat is enabled, send auto-guess event to that player after 3 seconds
+      // If cheat is enabled, send auto-guess event to that player
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
+        // For time mode, cheat answers between 2.5-4 seconds
+        const cheatDelay = game.gameMode === 'time' 
+          ? 2500 + Math.random() * 1500 // Random between 2500-4000ms
+          : 3000; // 3 seconds for other modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 3000);
+        }, cheatDelay);
       }
     } else if (game.started) {
       // If game already started, just send to the joining player
@@ -798,11 +802,15 @@ io.on("connection", (socket) => {
       
       // If cheat is enabled and this is the cheater joining, send auto-guess event
       if (game.cheatEnabled === username) {
+        // For time mode, cheat answers between 2.5-4 seconds
+        const cheatDelay = game.gameMode === 'time' 
+          ? 2500 + Math.random() * 1500 // Random between 2500-4000ms
+          : 3000; // 3 seconds for other modes
         setTimeout(() => {
           socket.emit("autoGuess", {
             song: game.song
           });
-        }, 3000);
+        }, cheatDelay);
       }
       
       // Store socket reference in lobby for cheat mode
@@ -864,7 +872,7 @@ io.on("connection", (socket) => {
 
     // Generate new song
     game.song = randomSong(game.artist || 'travis');
-    game.startTime = game.gameMode === 'random' ? randomStart() : 0;
+    game.startTime = game.gameMode === 'random' ? randomStart() : (game.gameMode === 'time' ? 0 : 0);
     game.roundFinished = false;
     
     // Reset player states
@@ -886,14 +894,18 @@ io.on("connection", (socket) => {
       gameMode: game.gameMode
     });
     
-      // If cheat is enabled, send auto-guess event to that player after 3 seconds
+      // If cheat is enabled, send auto-guess event to that player
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
+        // For time mode, cheat answers between 2.5-4 seconds
+        const cheatDelay = game.gameMode === 'time' 
+          ? 2500 + Math.random() * 1500 // Random between 2500-4000ms
+          : 3000; // 3 seconds for other modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 3000);
+        }, cheatDelay);
       }
     });
 
@@ -920,7 +932,7 @@ io.on("connection", (socket) => {
       
       // Generate new song
       game.song = randomSong(game.artist || 'travis');
-      game.startTime = game.gameMode === 'random' ? randomStart() : 0;
+      game.startTime = game.gameMode === 'random' ? randomStart() : (game.gameMode === 'time' ? 0 : 0);
       game.roundFinished = false;
       
       // Reset player states
@@ -939,14 +951,18 @@ io.on("connection", (socket) => {
         gameMode: game.gameMode
       });
       
-      // If cheat is enabled, send auto-guess event to that player after 3 seconds
+      // If cheat is enabled, send auto-guess event to that player
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
+        // For time mode, cheat answers between 2.5-4 seconds
+        const cheatDelay = game.gameMode === 'time' 
+          ? 2500 + Math.random() * 1500 // Random between 2500-4000ms
+          : 3000; // 3 seconds for other modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, 3000);
+        }, cheatDelay);
       }
     } else {
       // Broadcast request status
