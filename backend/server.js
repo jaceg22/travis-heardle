@@ -779,16 +779,14 @@ io.on("connection", (socket) => {
         lobbyId: lobbyId
       });
       
-      // If cheat is enabled, send auto-guess event to that player
+      // If cheat is enabled, send auto-guess event to that player at exactly 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
-        // For time mode, cheat answers at exactly 3 seconds
-        const cheatDelay = game.gameMode === 'time' ? 3000 : 3000; // 3 seconds for all modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, cheatDelay);
+        }, 3000);
       }
     } else if (game.started) {
       // If game already started, just send to the joining player
@@ -856,7 +854,7 @@ io.on("connection", (socket) => {
       // Notify other players
       socket.to(lobbyId).emit("opponentGuess", { username });
       
-      // Check if all players have finished
+      // Check if round should end (immediately for time mode, after all finish for other modes)
       checkRoundEnd(game, lobbyId);
     }
   });
@@ -911,16 +909,14 @@ io.on("connection", (socket) => {
       gameMode: game.gameMode
     });
     
-      // If cheat is enabled, send auto-guess event to that player
+      // If cheat is enabled, send auto-guess event to that player at exactly 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
-        // For time mode, cheat answers at exactly 3 seconds
-        const cheatDelay = game.gameMode === 'time' ? 3000 : 3000; // 3 seconds for all modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, cheatDelay);
+        }, 3000);
       }
     });
 
@@ -967,16 +963,14 @@ io.on("connection", (socket) => {
         gameMode: game.gameMode
       });
       
-      // If cheat is enabled, send auto-guess event to that player
+      // If cheat is enabled, send auto-guess event to that player at exactly 3 seconds
       if (game.cheatEnabled && game.sockets && game.sockets[game.cheatEnabled]) {
         const cheaterSocketId = game.sockets[game.cheatEnabled];
-        // For time mode, cheat answers at exactly 3 seconds
-        const cheatDelay = game.gameMode === 'time' ? 3000 : 3000; // 3 seconds for all modes
         setTimeout(() => {
           io.to(cheaterSocketId).emit("autoGuess", {
             song: game.song
           });
-        }, cheatDelay);
+        }, 3000);
       }
     } else {
       // Broadcast request status
@@ -1023,8 +1017,8 @@ io.on("connection", (socket) => {
         game.cheatEnabled = username;
         console.log(`Cheat enabled for ${username} in lobby ${lobbyId}`);
         
-        // For time mode, if game has started and it's been more than 3 seconds, guess instantly
-        // Otherwise schedule for 3 seconds from round start
+        // For time mode, if game has started, check if >=3 seconds have passed
+        // If >=3 seconds: guess instantly, if <3 seconds: wait until 3 second mark
         if (game.gameMode === 'time' && game.started && !game.roundFinished && cheaterSocketId && game.roundStartTime) {
           const elapsed = Date.now() - game.roundStartTime;
           if (elapsed >= 3000) {
@@ -1095,7 +1089,13 @@ function checkRoundEnd(game, lobbyId) {
   const allPlayers = Object.values(game.players);
   const finishedPlayers = allPlayers.filter(p => p.finished || p.strikesOut);
   
-  if (finishedPlayers.length === allPlayers.length && allPlayers.length >= 2 && !game.roundFinished) {
+  // For time mode, round ends immediately when someone guesses correctly (one player finished)
+  // For other modes, wait for all players to finish
+  const shouldEndRound = game.gameMode === 'time' 
+    ? finishedPlayers.length > 0 && !game.roundFinished  // Time mode: end immediately
+    : finishedPlayers.length === allPlayers.length && allPlayers.length >= 2 && !game.roundFinished; // Other modes: wait for all
+  
+  if (shouldEndRound) {
     game.roundFinished = true;
     
     // Determine winner - only consider players who didn't strike out
@@ -1113,12 +1113,15 @@ function checkRoundEnd(game, lobbyId) {
       // Only one player didn't strike out - they win
       const winner = validPlayers[0].username;
       game.scores[winner].wins++;
-      const loser = allPlayers.find(p => p.username !== winner).username;
-      game.scores[loser].losses++;
+      const loser = allPlayers.find(p => p.username !== winner);
+      if (loser && game.scores[loser.username]) {
+        game.scores[loser.username].losses++;
+      }
       
       io.to(lobbyId).emit("gameOver", {
         winner: winner,
         winnerDuration: validPlayers[0].duration,
+        winnerStrikes: validPlayers[0].strikes,
         song: game.song,
         scores: game.scores
       });

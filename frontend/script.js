@@ -3600,13 +3600,11 @@ async function startTimeGame() {
         requestNewSong: false
     };
     
-    // Reset UI
-    for (let i = 1; i <= 6; i++) {
-        const bar = document.getElementById(`timeBar${i}`);
-        if (bar) {
-            bar.className = 'progress-bar';
-            bar.textContent = '';
-        }
+    // Set artist image
+    const artistImageUrl = getArtistCoverUrl();
+    const artistImg = document.getElementById("timeArtistImage");
+    if (artistImg) {
+        artistImg.src = artistImageUrl;
     }
     
     document.getElementById("timeStrikes").textContent = "0/6 strikes";
@@ -3647,15 +3645,6 @@ async function startTimeRound() {
     timeState.gameOver = false;
     timeState.requestNewSong = false;
     
-    // Reset progress bars
-    for (let i = 1; i <= 6; i++) {
-        const bar = document.getElementById(`timeBar${i}`);
-        if (bar) {
-            bar.className = 'progress-bar';
-            bar.textContent = '';
-        }
-    }
-    
     document.getElementById("timeStrikes").textContent = "0/6 strikes";
     document.getElementById("timeFeedback").textContent = "";
     document.getElementById("timeFeedback").className = "feedback";
@@ -3694,7 +3683,7 @@ function startTimeTimer() {
 }
 
 function addTimePenalty() {
-    timeState.timer += 3;
+    // No penalty for incorrect guesses in time mode
 }
 
 function endTimeGame() {
@@ -3791,10 +3780,7 @@ document.getElementById("timeGuess").onclick = () => {
     
     if (!matchedSong) {
         timeState.strikes++;
-        addTimePenalty(); // 3 second penalty
         document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
-        const strikeIndex = timeState.strikes - 1;
-        updateProgressBar('time', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
         document.getElementById("timeFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("timeFeedback").className = "feedback not-found";
         document.getElementById("timeGuessInput").value = "";
@@ -3811,8 +3797,6 @@ document.getElementById("timeGuess").onclick = () => {
         // Correct guess - round is over
         timeState.guessed = true;
         timeState.gameOver = true; // Mark round as finished
-        const strikeIndex = timeState.strikes;
-        updateProgressBar('time', strikeIndex, 'correct', 'Guessed Correct!');
         document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
         document.getElementById("timeFeedback").textContent = `Correct!`;
         document.getElementById("timeFeedback").className = "feedback correct";
@@ -3847,10 +3831,7 @@ document.getElementById("timeGuess").onclick = () => {
     
     // Wrong song
     timeState.strikes++;
-    addTimePenalty(); // 3 second penalty
     document.getElementById("timeStrikes").textContent = `${timeState.strikes}/6 strikes`;
-    const strikeIndex = timeState.strikes - 1;
-    updateProgressBar('time', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
     document.getElementById("timeFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
     document.getElementById("timeFeedback").className = "feedback incorrect";
     document.getElementById("timeGuessInput").value = "";
@@ -3914,13 +3895,11 @@ function startTimeH2hGame(data) {
         }
     }
     
-    // Reset UI
-    for (let i = 1; i <= 6; i++) {
-        const bar = document.getElementById(`timeH2hBar${i}`);
-        if (bar) {
-            bar.className = 'progress-bar';
-            bar.textContent = '';
-        }
+    // Set artist image
+    const artistImageUrl = getArtistCoverUrl();
+    const artistImg = document.getElementById("timeH2hArtistImage");
+    if (artistImg) {
+        artistImg.src = artistImageUrl;
     }
     
     document.getElementById("timeH2hStrikes").textContent = "0/6 strikes";
@@ -3980,7 +3959,7 @@ function startTimeH2hTimer() {
 }
 
 function addTimeH2hPenalty() {
-    timeH2hState.timer += 3;
+    // No penalty for incorrect guesses in time mode
 }
 
 function updateTimeH2hScoreDisplay() {
@@ -4121,10 +4100,7 @@ document.getElementById("timeH2hGuess").onclick = () => {
     
     if (!matchedSong) {
         timeH2hState.strikes++;
-        addTimeH2hPenalty(); // 3 second penalty
         document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
-        const strikeIndex = timeH2hState.strikes - 1;
-        updateProgressBar('timeH2h', strikeIndex, 'incorrect', `Guessed "${guess}" Incorrect`);
         document.getElementById("timeH2hFeedback").textContent = `"${guess}": Song not found. Try Again.`;
         document.getElementById("timeH2hFeedback").className = "feedback not-found";
         document.getElementById("timeH2hGuessInput").value = "";
@@ -4150,13 +4126,12 @@ document.getElementById("timeH2hGuess").onclick = () => {
     }
     
     if (matchedSong.toLowerCase() === timeH2hState.currentSong.toLowerCase()) {
-        // Correct guess - stop music and wait for gameOver event
+        // Correct guess - round ends immediately for time mode
         timeH2hState.guessed = true;
         timeH2hState.finished = true;
-        const strikeIndex = timeH2hState.strikes;
-        updateProgressBar('timeH2h', strikeIndex, 'correct', 'Guessed Correct!');
+        timeH2hState.roundFinished = true;
         document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
-        document.getElementById("timeH2hFeedback").textContent = `Correct! Waiting for opponent...`;
+        document.getElementById("timeH2hFeedback").textContent = `Correct!`;
         document.getElementById("timeH2hFeedback").className = "feedback correct";
         
         // Stop music
@@ -4173,7 +4148,7 @@ document.getElementById("timeH2hGuess").onclick = () => {
         // Disable request new song button
         document.getElementById("timeH2hRequestNewSong").disabled = true;
         
-        // Use playerGuess event like regular h2h mode
+        // Use playerGuess event - for time mode, round ends immediately when someone guesses correctly
         socket.emit("playerGuess", {
             lobbyId: timeH2hState.lobbyId,
             username: timeH2hState.username,
@@ -4193,10 +4168,7 @@ document.getElementById("timeH2hGuess").onclick = () => {
     
     // Wrong song
     timeH2hState.strikes++;
-    addTimeH2hPenalty(); // 3 second penalty
     document.getElementById("timeH2hStrikes").textContent = `${timeH2hState.strikes}/6 strikes`;
-    const strikeIndex = timeH2hState.strikes - 1;
-    updateProgressBar('timeH2h', strikeIndex, 'incorrect', `Guessed "${matchedSong}" Incorrect`);
     document.getElementById("timeH2hFeedback").textContent = `"${matchedSong}": Incorrect. Try Again.`;
     document.getElementById("timeH2hFeedback").className = "feedback incorrect";
     document.getElementById("timeH2hGuessInput").value = "";
@@ -4277,7 +4249,7 @@ document.getElementById("timeH2hChatSend").onclick = () => {
     const message = input.value.trim();
     if (!message) return;
     
-    socket.emit("chat", {
+    socket.emit("chatMessage", {
         lobbyId: timeH2hState.lobbyId,
         username: timeH2hState.username,
         message: message
@@ -4286,7 +4258,7 @@ document.getElementById("timeH2hChatSend").onclick = () => {
     input.value = "";
 };
 
-socket.on("chat", data => {
+socket.on("chatMessage", data => {
     if (gameMode !== 'time') return;
     const messagesDiv = document.getElementById("timeH2hChatMessages");
     const messageDiv = document.createElement("div");
@@ -5537,8 +5509,13 @@ function getArtistDefaultCoverKey(artist) {
     return 'travis';
 }
 
-function getArtistCoverUrl(artist) {
-    const key = getArtistDefaultCoverKey(artist);
+function getArtistCoverUrl(artist = null) {
+    const artistToUse = artist || selectedArtist || 'travis';
+    const key = getArtistDefaultCoverKey(artistToUse);
+    // For time mode with demi, use "demil.jpg" instead of "demi.jpg"
+    if ((currentMode === 'time' || gameMode === 'time') && artistToUse === 'demi' && key === 'demi') {
+        return `${SUPABASE_COVERS_BASE}/demil.jpg`;
+    }
     return `${SUPABASE_COVERS_BASE}/${encodeURIComponent(key)}.jpg`;
 }
 
